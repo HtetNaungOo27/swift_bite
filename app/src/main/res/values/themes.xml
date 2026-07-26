@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.FoodHubAndroid" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:colorPrimary">@color/logo_color</item>
+        <item name="android:statusBarColor">@color/logo_color</item>
+    </style>
+
+    <style name="SplashTheme" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/white</item>
+        <item name="postSplashScreenTheme">@style/Theme.FoodHubAndroid</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/animated_logo</item>
+    </style>
+</resources>

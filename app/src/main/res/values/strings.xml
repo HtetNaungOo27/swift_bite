@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">FoodHub-Android</string>
+    <string name="skip">Skip</string>
+    <string name="welcome">Welcome To</string>
+    <string name="swift_bite">SwiftBite</string>
+    <string name="food_hub_desc">Your favourite foods delivered fast at your door.</string>
+    <string name="already_have_an_account">Already have an account? Login</string>
+    <string name="sign_with_email">Start with email or phone</string>
+    <string name="sign_with_facebook">FACEBOOK</string>
+    <string name="sign_with_google">GOOGLE</string>
+    <string name="sign_in_with">sign in with</string>
+    <string name="sign_up">Sign Up</string>
+    <string name="password">Password</string>
+    <string name="email">Email</string>
+    <string name="full_name">Full Name</string>
+    <string name="sign_in">Sign In</string>
+</resources>

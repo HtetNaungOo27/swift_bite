@@ -8,7 +8,10 @@ import android.view.animation.OvershootInterpolator
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.annotation.Discouraged
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,12 +39,9 @@ import com.example.foodhub_android.ui.theme.FoodHubAndroidTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.coroutines.coroutineContext
-
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     var showSplashScreen = true
@@ -88,8 +88,35 @@ class MainActivity : ComponentActivity() {
             FoodHubAndroidTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     val navController = rememberNavController()
-                    NavHost(navController= navController, startDestination= AuthScreen,
-                        modifier = Modifier.padding(innerPadding)
+                    NavHost(
+                        navController= navController,
+                        startDestination= AuthScreen,
+                        modifier = Modifier.padding(innerPadding),
+                        enterTransition = {
+                            slideIntoContainer(
+                                towards = AnimatedContentTransitionScope.SlideDirection.Left,
+                                animationSpec = tween(300)
+                            ) + fadeIn(animationSpec = tween(300))
+                        },
+                        exitTransition = {
+                            slideOutOfContainer(
+                                towards = AnimatedContentTransitionScope.SlideDirection.Left,
+                                animationSpec = tween(300)
+                            ) + fadeOut(animationSpec = tween(300))
+                        },
+                        popEnterTransition = {
+                            slideIntoContainer(
+                                towards = AnimatedContentTransitionScope.SlideDirection.Right,
+                                animationSpec = tween(300)
+                            ) + fadeIn(animationSpec = tween(300))
+                        },
+                        popExitTransition = {
+                            slideOutOfContainer(
+                                AnimatedContentTransitionScope.SlideDirection.Right,
+                                tween(300)
+                            )+ fadeOut(tween(300))
+                        }
+
                     ){
                         composable<SignUp>{
                             SignUpScreen(navController)
@@ -125,10 +152,18 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
     )
 }
 
+//@Preview(showBackground = true)
+//@Composable
+//fun GreetingPreview() {
+//    FoodHubAndroidTheme {
+//        Greeting("Android")
+//    }
+//}
+
 @Preview(showBackground = true)
 @Composable
-fun GreetingPreview() {
+private fun PreviewMainActivity() {
     FoodHubAndroidTheme {
-        Greeting("Android")
+        AuthScreen(rememberNavController())
     }
 }

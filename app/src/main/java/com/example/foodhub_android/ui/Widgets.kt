@@ -1,5 +1,7 @@
 package com.example.foodhub_android.ui
 
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -32,31 +34,37 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.example.foodhub_android.BaseAuthViewModel
 import com.example.foodhub_android.R
 import com.example.foodhub_android.ui.theme.Orange
 
 @Composable
-fun GroupSocialButtons(color: Color = Color.White, onFacebookClick:()-> Unit, onGoogleClick:()-> Unit){
+fun GroupSocialButtons(
+    color: Color = Color.White,
+    viewModel: BaseAuthViewModel
+){
     Column {
-        Row( Modifier.fillMaxWidth().padding(start=8.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically){
+        Row( Modifier
+            .fillMaxWidth()
+            .padding(start = 8.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically){
             HorizontalDivider(Modifier.weight(1f),1.dp,color)
             Text(text = stringResource(R.string.sign_in_with), color = color, modifier = Modifier.padding(8.dp))
-            HorizontalDivider(Modifier.weight(1f).padding(end=8.dp),1.dp,color)
+            HorizontalDivider(Modifier
+                .weight(1f)
+                .padding(end = 8.dp),1.dp,color)
         }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceAround
-        ){
-            SocialButtons(
-                icon=R.drawable.ic_facebook,
-                title=R.string.sign_with_facebook,
-                onFacebookClick
-            )
-            SocialButtons(
-                icon=R.drawable.ic_google,
-                title=R.string.sign_with_google,
-                onGoogleClick
-            )
+
+        val activity = LocalActivity.current
+        SocialButtons(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            icon = R.drawable.ic_google,
+            title = R.string.sign_with_google,
+        ) {
+            (activity as? ComponentActivity)?.let {
+                viewModel.onGoogleClicked(it)
+            }
         }
     }
 
@@ -64,9 +72,14 @@ fun GroupSocialButtons(color: Color = Color.White, onFacebookClick:()-> Unit, on
 
 @Composable
 fun SocialButtons(
-    icon:Int, title:Int, onClick: ()-> Unit
+    modifier: Modifier = Modifier,
+    icon: Int,
+    title: Int,
+    onClick: () -> Unit
 ){
-    Button(onClick = onClick,
+    Button(
+        onClick = onClick,
+        modifier = modifier,
         colors = ButtonDefaults.buttonColors(containerColor = Color.White),
         shape = RoundedCornerShape(32.dp),
     ){

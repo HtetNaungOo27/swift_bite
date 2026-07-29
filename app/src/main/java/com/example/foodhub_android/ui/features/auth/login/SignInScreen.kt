@@ -233,13 +233,11 @@ fun SignInScreen(navController: NavController,viewModel: SignInViewModel = hiltV
                     .weight(1f, fill = false)
             )
 
+            val context =LocalContext.current
             GroupSocialButtons(
                 color = Color.Black,
-                onFacebookClick = {}
-            ) {
-                // Google click
-            }
-
+                viewModel
+            )
             Spacer(modifier = Modifier.height(20.dp))
         }
     }

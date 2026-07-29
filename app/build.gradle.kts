@@ -68,4 +68,7 @@ dependencies {
     implementation(libs.androidx.hilt.lifecycle.viewmodel.compose.v140)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
 }

@@ -28,9 +28,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.foodhub_android.data.FoodApi
+import com.example.foodhub_android.data.FoodHubSession
 import com.example.foodhub_android.ui.features.auth.AuthScreen
 import com.example.foodhub_android.ui.features.auth.login.SignInScreen
 import com.example.foodhub_android.ui.features.auth.signup.SignUpScreen
+import com.example.foodhub_android.ui.features.home.HomeScreen
 import com.example.foodhub_android.ui.navigation.AuthScreen
 import com.example.foodhub_android.ui.navigation.Home
 import com.example.foodhub_android.ui.navigation.Login
@@ -48,6 +50,8 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var foodApi: FoodApi
+    @Inject
+    lateinit var session: FoodHubSession
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         installSplashScreen().apply {
@@ -90,7 +94,7 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     NavHost(
                         navController= navController,
-                        startDestination= AuthScreen,
+                        startDestination= if(session.getToken()!= null) Home else AuthScreen,
                         modifier = Modifier.padding(innerPadding),
                         enterTransition = {
                             slideIntoContainer(
@@ -128,7 +132,7 @@ class MainActivity : ComponentActivity() {
                             SignInScreen(navController)
                         }
                         composable<Home> {
-                            Box(modifier= Modifier.fillMaxSize().background(Color.Red)){}
+                            HomeScreen(navController)
                         }
                     }
                 }

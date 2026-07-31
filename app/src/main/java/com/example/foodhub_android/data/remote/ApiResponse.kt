@@ -1,31 +1,43 @@
 package com.example.foodhub_android.data.remote
 
-import com.example.foodhub_android.data.models.FoodItem
 import retrofit2.Response
 
 sealed class ApiResponse<out T> {
 
-    val data: List<FoodItem>
+    data class Success<out T>(val data: T) : ApiResponse<T>()
 
-    data class Success<out T>(val data:T) : ApiResponse<T>()
-    data class Error(val code: Int, val message: String?) : ApiResponse<Nothing>(){
-            fun formatMsg(): String {
-                return "Error : $code $message"
-        }
+    data class Error(
+        val code: Int,
+        val message: String?
+    ) : ApiResponse<Nothing>() {
+        fun formatMsg(): String = "Error: $code ${message.orEmpty()}"
     }
-    data class Exception(val exception: kotlin.Exception) : ApiResponse<Nothing>()
+
+    data class Exception(
+        val exception: kotlin.Exception
+    ) : ApiResponse<Nothing>()
 }
 
-suspend fun <T> safeApiCall(apiCall: suspend ()-> Response<T>): ApiResponse<T> {
-    return try{
-        val res = apiCall.invoke()
-        if(res.isSuccessful){
-            ApiResponse.Success(res.body()!!)
-        }else {
-            ApiResponse.Error(res.code(),res.errorBody()?.string()?: "Unknown Error")
-        }
+suspend fun <T> safeApiCall(
+    apiCall: suspend () -> Response<T>
+): ApiResponse<T> {
+    return try {
+        val response = apiCall()
 
-    } catch(e: Exception){
-        ApiResponse.Exception(e)
+        if (response.isSuccessful) {
+            response.body()?.let { body ->
+                ApiResponse.Success(body)
+            } ?: ApiResponse.Error(
+                code = response.code(),
+                message = "Response body is empty"
+            )
+        } else {
+            ApiResponse.Error(
+                code = response.code(),
+                message = response.errorBody()?.string() ?: "Unknown error"
+            )
+        }
+    } catch (exception: kotlin.Exception) {
+        ApiResponse.Exception(exception)
     }
 }

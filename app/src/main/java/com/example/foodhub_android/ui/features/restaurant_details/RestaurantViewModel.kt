@@ -7,7 +7,7 @@ import com.example.foodhub_android.data.models.FoodItem
 import com.example.foodhub_android.data.remote.ApiResponse
 import com.example.foodhub_android.data.remote.safeApiCall
 import dagger.hilt.android.lifecycle.HiltViewModel
-import jakarta.inject.Inject
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -24,7 +24,7 @@ class RestaurantViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel(
     private val _navigationEvent = MutableSharedFlow<RestaurantNavigationEvent>()
     val navigationEvent = _navigationEvent.asSharedFlow()
 
-    fun getFoodItem(id: String, ) {
+    fun getFoodItem(id: String) {
         viewModelScope.launch {
             _uiState.value = RestaurantEvent.Loading
             try {
@@ -33,7 +33,7 @@ class RestaurantViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel(
                 }
                 when(response){
                     is ApiResponse.Success ->{
-                        _uiState.value = RestaurantEvent.Success(response.data.foodItems,)
+                        _uiState.value = RestaurantEvent.Success(response.data.foodItems)
                     }
                     else -> {
                         val error =(response as? ApiResponse.Error)?.code
@@ -72,7 +72,7 @@ class RestaurantViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel(
 
     sealed class RestaurantEvent {
         data object Nothing : RestaurantEvent()
-        data class Success(val foodItem: List<FoodItem>, val foodItems: Any) : RestaurantEvent()
+        data class Success(val foodItems: List<FoodItem>) : RestaurantEvent()
         data object Error : RestaurantEvent()
         data object Loading : RestaurantEvent()
     }

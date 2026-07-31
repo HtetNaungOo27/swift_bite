@@ -1,6 +1,5 @@
 package com.example.foodhub_android.ui.features.restaurant_details
 
-import android.R.attr.text
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -8,17 +7,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,25 +25,20 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
-import com.example.foodhub_android.data.models.Restaurant
 import com.example.foodhub_android.R
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.collectAsState
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Button
 import androidx.compose.runtime.LaunchedEffect
 
 import androidx.compose.ui.graphics.Color
@@ -65,14 +58,14 @@ fun RestaurantDetailScreen(
     }
     val uiState = viewModel.uiState.collectAsState()
     LazyVerticalGrid(GridCells.Fixed(2), modifier = Modifier.fillMaxSize()) {
-        item {
+        item(span = { GridItemSpan(maxLineSpan) }) {
             RestaurantDetailHeader(
                 imageUrl = imageUrl,
                 onBackButton = { navController.popBackStack() },
                 onFavoriteButton = {}
             )
         }
-        item {
+        item(span = { GridItemSpan(maxLineSpan) }) {
             RestaurantDetails(
                 title = name,
                 description = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed ut purus eget sapien fermentum aliquam. Nam sollicitudin interdum risus."
@@ -80,7 +73,7 @@ fun RestaurantDetailScreen(
         }
         when(uiState.value){
             is RestaurantViewModel.RestaurantEvent.Loading ->  {
-                item {
+                item(span = { GridItemSpan(maxLineSpan) }) {
                     Column (
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.fillMaxWidth(),
@@ -95,21 +88,21 @@ fun RestaurantDetailScreen(
             is RestaurantViewModel.RestaurantEvent.Success -> {
                 val foodItems =
                     (uiState.value as RestaurantViewModel.RestaurantEvent.Success).foodItems
-                if(foodItems.size>0) {
-                    items(foodItems as Int) { foodItem ->
+                if (foodItems.isNotEmpty()) {
+                    items(foodItems) { foodItem ->
                         FoodItemView(foodItem = foodItem)
                     }
                 }
-                    else{
-                        item {
-                            Text(text = "No Food Items")
+                else{
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        Text(text = "No Food Items")
 
-                }
+                    }
 
                 }
             }
             is RestaurantViewModel.RestaurantEvent.Error ->{
-                item {
+                item(span = { GridItemSpan(maxLineSpan) }) {
                     Text(text = "Error")
                 }
             }
@@ -172,14 +165,15 @@ fun RestaurantDetailHeader(
     onBackButton: () -> Unit,
     onFavoriteButton: () -> Unit
 ) {
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxWidth()) {
         AsyncImage(
             model = imageUrl, contentDescription = null, modifier = Modifier
                 .fillMaxWidth()
+                .height(200.dp)
                 .clip(
                     RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp)
                 ),
-            contentScale = ContentScale.Fit
+            contentScale = ContentScale.Crop
 
         )
         IconButton(
@@ -210,13 +204,14 @@ fun FoodItemView(foodItem: FoodItem) {
             .height(216.dp)
             .clip(RoundedCornerShape(16.dp))
     ) {
-        Box(modifier = Modifier.fillMaxWidth()){
-            AsyncImage(model = foodItem.imageUrl, contentDescription =null ,
+        Box(modifier = Modifier.fillMaxWidth()) {
+            AsyncImage(
+                model = foodItem.imageUrl,
+                contentDescription = null,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(147.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(16.dp)),
                 contentScale = ContentScale.FillWidth,
             )
             Text(
@@ -228,36 +223,38 @@ fun FoodItemView(foodItem: FoodItem) {
                     .padding(horizontal = 16.dp)
                     .align(Alignment.TopStart)
             )
-            /
-                Image(
-                    painter = painterResource(id= R.drawable.favorite),
-                    contentDescription = null,
-                    modifier = Modifier.size(28.dp)
-                        .clip(CircleShape)
-                        .align(Alignment.TopEnd)
-                )
-            }
-            Row(modifier = Modifier.align(Alignment.BottomStart)
-                .clip(RoundedCornerShape(16.dp).background(Color.White)),verticalAlignment = Alignment.CenterVertically) {
+            Image(
+                painter = painterResource(id = R.drawable.favorite),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .align(Alignment.TopEnd)
+            )
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.White)
+                    .padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
-                    text ="4.5", style = MaterialTheme.typography.titleSmall, maxLines = 1
-
+                    text = "4.5", style = MaterialTheme.typography.titleSmall, maxLines = 1
                 )
-                Spacer(modifier = Modifier.size((8.dp))
-                    Icon(
-                        imageVector = Icons.Filled.Star,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp)
-                    )
-                Spacer(modifier = Modifier.size((8.dp))
-                    Text(
-                        text ="(21)",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = color.Gray,
-                        maxLines = 1
-                    )
-
-
+                Spacer(modifier = Modifier.size(8.dp))
+                Icon(
+                    imageVector = Icons.Filled.Star,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.size(8.dp))
+                Text(
+                    text = "(21)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray,
+                    maxLines = 1
+                )
             }
         }
 
@@ -273,7 +270,7 @@ fun FoodItemView(foodItem: FoodItem) {
                 maxLines = 1
             )
             Text(
-                text = "$${foodItem.description}",
+                text = foodItem.description,
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.Gray,
                 maxLines = 1

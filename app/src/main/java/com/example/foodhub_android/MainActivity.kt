@@ -24,7 +24,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.animation.doOnEnd
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -35,6 +34,7 @@ import com.example.foodhub_android.ui.features.auth.AuthScreen
 import com.example.foodhub_android.ui.features.auth.login.SignInScreen
 import com.example.foodhub_android.ui.features.auth.signup.SignUpScreen
 import com.example.foodhub_android.ui.features.home.HomeScreen
+import com.example.foodhub_android.ui.features.restaurant_details.RestaurantDetailScreen
 import com.example.foodhub_android.ui.navigation.AuthScreen
 import com.example.foodhub_android.ui.navigation.Home
 import com.example.foodhub_android.ui.navigation.Login
@@ -139,7 +139,7 @@ class MainActivity : ComponentActivity() {
                         }
                         composable<RestaurantDetails> {
                             val route = it.toRoute<RestaurantDetails>()
-                            RestaurantDetailsScreen(
+                            RestaurantDetailScreen(
                                 navController,
                                 name = route.restaurantName,
                                 imageUrl = route.restaurantImageUrl,
@@ -159,13 +159,6 @@ class MainActivity : ComponentActivity() {
             showSplashScreen = false
         }
     }
-
-    annotation class RestaurantDetailsScreen(
-        val navController: NavHostController,
-        val name: String,
-        val imageUrl: String,
-        val restaurantID: String
-    )
 }
 
 @Composable

@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,12 +41,27 @@ import coil3.compose.AsyncImage
 import com.example.foodhub_android.R
 import com.example.foodhub_android.data.models.Category
 import com.example.foodhub_android.data.models.Restaurant
+import com.example.foodhub_android.ui.navigation.RestaurantDetails
 import com.example.foodhub_android.ui.theme.Orange
 import com.example.foodhub_android.ui.theme.Typography
+import kotlinx.coroutines.flow.collectLatest
 
 @Composable
 
 fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltViewModel()) {
+
+    LaunchedEffect(Unit) {
+        viewModel.navigationEvent.collectLatest {
+            when (it) {
+                is HomeViewModel.HomeScreenNavigationEvent.NavigateToDetail->{
+                    navController.navigate(RestaurantDetails(it.id, it.name,it.imageUrl))
+                }
+                else -> {
+
+                }
+            }
+        }
+    }
     Column(modifier = Modifier.fillMaxSize()) {
         val uiState = viewModel.uiState.collectAsState()
 
@@ -63,7 +79,7 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
                 })
 
                 RestaurantList(restaurants = viewModel.restaurants, onRestaurantSelected = {
-//                    will implement later
+                     viewModel.onRestaurantSelected(it)
                 })
             }
         }

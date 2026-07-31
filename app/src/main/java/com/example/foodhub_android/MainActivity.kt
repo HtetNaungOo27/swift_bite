@@ -24,9 +24,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.animation.doOnEnd
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import com.example.foodhub_android.data.FoodApi
 import com.example.foodhub_android.data.FoodHubSession
 import com.example.foodhub_android.ui.features.auth.AuthScreen
@@ -36,6 +38,7 @@ import com.example.foodhub_android.ui.features.home.HomeScreen
 import com.example.foodhub_android.ui.navigation.AuthScreen
 import com.example.foodhub_android.ui.navigation.Home
 import com.example.foodhub_android.ui.navigation.Login
+import com.example.foodhub_android.ui.navigation.RestaurantDetails
 import com.example.foodhub_android.ui.navigation.SignUp
 import com.example.foodhub_android.ui.theme.FoodHubAndroidTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -134,6 +137,16 @@ class MainActivity : ComponentActivity() {
                         composable<Home> {
                             HomeScreen(navController)
                         }
+                        composable<RestaurantDetails> {
+                            val route = it.toRoute<RestaurantDetails>()
+                            RestaurantDetailsScreen(
+                                navController,
+                                name = route.restaurantName,
+                                imageUrl = route.restaurantImageUrl,
+                                restaurantID = route.restaurantId
+                            )
+
+                        }
                     }
                 }
             }
@@ -146,6 +159,13 @@ class MainActivity : ComponentActivity() {
             showSplashScreen = false
         }
     }
+
+    annotation class RestaurantDetailsScreen(
+        val navController: NavHostController,
+        val name: String,
+        val imageUrl: String,
+        val restaurantID: String
+    )
 }
 
 @Composable

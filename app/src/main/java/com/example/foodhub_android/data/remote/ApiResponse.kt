@@ -1,8 +1,11 @@
 package com.example.foodhub_android.data.remote
 
+import com.example.foodhub_android.data.models.FoodItem
 import retrofit2.Response
 
 sealed class ApiResponse<out T> {
+
+    val data: List<FoodItem>
 
     data class Success<out T>(val data:T) : ApiResponse<T>()
     data class Error(val code: Int, val message: String?) : ApiResponse<Nothing>(){

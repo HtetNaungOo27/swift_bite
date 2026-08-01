@@ -196,5 +196,7 @@ fun AuthScreen(navController: NavController, viewModel: AuthScreenViewModel = hi
 @Preview(showBackground = true)
 @Composable
 fun AuthScreenPreview(){
-    AuthScreen(rememberNavController())
+    AuthScreen(
+        navController = rememberNavController()
+    )
 }

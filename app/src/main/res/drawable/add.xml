@@ -1,0 +1,41 @@
+<!--
+  ~ Copyright (C) 2026 The Android Open Source Project
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~      http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="91dp"
+    android:height="91dp"
+    android:viewportWidth="91"
+    android:viewportHeight="91">
+
+  <!-- Circle: Center is (45.5, 45.5) with Radius 15.5 -->
+  <path
+      android:fillColor="#FE724C"
+      android:pathData="M45.5,30 A15.5,15.5 0,1 1 45.5,61 A15.5,15.5 0,1 1 45.5,30Z"/>
+
+  <!-- Vertical Line (Center: Y=45.5) -->
+  <path
+      android:pathData="M45.5,39 L45.5,52"
+      android:strokeWidth="2"
+      android:strokeColor="#FFFFFF"
+      android:strokeLineCap="round"/>
+
+  <!-- Horizontal Line (Center: X=45.5, Y=45.5) -->
+  <path
+      android:pathData="M39,45.5 L52,45.5"
+      android:strokeWidth="2"
+      android:strokeColor="#FFFFFF"
+      android:strokeLineCap="round"/>
+
+</vector>

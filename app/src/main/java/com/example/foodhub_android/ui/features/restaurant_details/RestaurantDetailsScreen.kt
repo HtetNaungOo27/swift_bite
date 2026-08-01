@@ -1,7 +1,11 @@
 package com.example.foodhub_android.ui.features.restaurant_details
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,18 +44,23 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
+import androidx.compose.ui.draw.shadow
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import com.example.foodhub_android.data.models.FoodItem
+import com.example.foodhub_android.ui.navigation.FoodDetails
 
 
 @Composable
-fun RestaurantDetailScreen(
+fun SharedTransitionScope.RestaurantDetailScreen(
     navController: NavController,
     name: String,
     imageUrl: String,
     restaurantID: String,
-    viewModel: RestaurantViewModel = hiltViewModel()
+    animatedVisibilityScope: AnimatedVisibilityScope,
+    viewModel: RestaurantViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(restaurantID) {
         viewModel.getFoodItem((restaurantID))
@@ -61,15 +70,17 @@ fun RestaurantDetailScreen(
         item(span = { GridItemSpan(maxLineSpan) }) {
             RestaurantDetailHeader(
                 imageUrl = imageUrl,
+                restaurantID = restaurantID,
                 onBackButton = { navController.popBackStack() },
-                onFavoriteButton = {}
+                onFavoriteButton = {},
             )
         }
         item(span = { GridItemSpan(maxLineSpan) }) {
             RestaurantDetails(
                 title = name,
-                description = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed ut purus eget sapien fermentum aliquam. Nam sollicitudin interdum risus."
-            )
+                description = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed ut purus eget sapien fermentum aliquam. Nam sollicitudin interdum risus.",
+                restaurantID = restaurantID,
+                )
         }
         when(uiState.value){
             is RestaurantViewModel.RestaurantEvent.Loading ->  {
@@ -90,10 +101,15 @@ fun RestaurantDetailScreen(
                     (uiState.value as RestaurantViewModel.RestaurantEvent.Success).foodItems
                 if (foodItems.isNotEmpty()) {
                     items(foodItems) { foodItem ->
-                        FoodItemView(foodItem = foodItem)
+                        FoodItemView(foodItem = foodItem,
+                            animatedVisibilityScope = animatedVisibilityScope) {
+                            navController.navigate(
+                                FoodDetails(foodItem)
+                            )
+                        }
                     }
                 }
-                else{
+             else{
                     item(span = { GridItemSpan(maxLineSpan) }) {
                         Text(text = "No Food Items")
 
@@ -113,7 +129,7 @@ fun RestaurantDetailScreen(
 }
 
 @Composable
-fun RestaurantDetails(title: String, description: String) {
+fun RestaurantDetails(title: String, description: String, restaurantID: String) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -163,7 +179,8 @@ fun RestaurantDetailHeader(
 
     imageUrl: String,
     onBackButton: () -> Unit,
-    onFavoriteButton: () -> Unit
+    onFavoriteButton: () -> Unit,
+    restaurantID: String
 ) {
     Box(modifier = Modifier.fillMaxWidth()) {
         AsyncImage(
@@ -195,13 +212,22 @@ fun RestaurantDetailHeader(
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun FoodItemView(foodItem: FoodItem) {
+fun SharedTransitionScope.FoodItemView(foodItem: FoodItem,animatedVisibilityScope: AnimatedVisibilityScope, onClick: (FoodItem) -> Unit) {
     Column(
         modifier = Modifier
             .padding(8.dp)
             .width(162.dp)
             .height(216.dp)
+            .shadow(
+                elevation = 16.dp,
+                shape = RoundedCornerShape(16.dp),
+                ambientColor = Color.Gray.copy(alpha = 0.8f),
+                spotColor = Color.Gray.copy(alpha = 0.8f)
+            )
+            .background(Color.White)
+            .clickable{ onClick.invoke(foodItem) }
             .clip(RoundedCornerShape(16.dp))
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
@@ -211,7 +237,11 @@ fun FoodItemView(foodItem: FoodItem) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(147.dp)
-                    .clip(RoundedCornerShape(16.dp)),
+                    .clip(RoundedCornerShape(16.dp))
+                    .sharedElement(
+                        sharedContentState = rememberSharedContentState(key = "image/${foodItem.id}"),
+                        animatedVisibilityScope = animatedVisibilityScope
+                    ),
                 contentScale = ContentScale.FillWidth,
             )
             Text(
@@ -273,7 +303,11 @@ fun FoodItemView(foodItem: FoodItem) {
                 text = foodItem.description,
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.Gray,
-                maxLines = 1
+                maxLines = 1,
+                modifier = Modifier.sharedElement(
+                    sharedContentState = rememberSharedContentState(key = "title/${foodItem.id}"),
+                    animatedVisibilityScope = animatedVisibilityScope
+                )
             )
         }
     }

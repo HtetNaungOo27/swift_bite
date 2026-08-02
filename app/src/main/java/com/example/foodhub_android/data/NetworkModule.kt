@@ -14,6 +14,20 @@ import retrofit2.converter.gson.GsonConverterFactory
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
+    @Provides
+    fun provideClient(session: FoodHubSession): OkHttpClient{
+        val client = OkHttpClient.Builder()
+        client.addInterceptor {  chain ->
+            val request = chain.request().newBuilder()
+                .addHeader("Authoriztion", "Bearer ${session.getToken()}")
+                .build()
+            chain.proceed(request)
+        }
+        client.addInterceptor(HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
+        })
+        return client.build()
+    }
 
     @Provides
     fun provideSession(@ApplicationContext context: Context): FoodHubSession =

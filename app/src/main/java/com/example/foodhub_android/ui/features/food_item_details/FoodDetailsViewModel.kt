@@ -2,13 +2,14 @@ package com.example.foodhub_android.ui.features.food_item_details
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.foodhub_android.data.FoodApi
 import com.example.foodhub_android.data.models.AddToCartRequest
 import com.example.foodhub_android.data.remote.ApiResponse
 import com.example.foodhub_android.data.remote.safeApiCall
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -20,10 +21,10 @@ class FoodDetailsViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel
     private val _uiState = MutableStateFlow<FoodDetailsUiState>(FoodDetailsUiState.Nothing)
     val uiState = _uiState.asStateFlow()
 
-    private val _event =MutableStateFlow<FoodDetailsEvent>()
-    val event = _event.asStateFlow()
+    private val _event = MutableSharedFlow<FoodDetailsEvent>()
+    val event = _event.asSharedFlow()
 
-    private val _quantity = MutableStateFlow<Int>(0)
+    private val _quantity = MutableStateFlow(1)
     val quantity =_quantity.asStateFlow()
 
     fun incrementQuantity() {
@@ -34,13 +35,13 @@ class FoodDetailsViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel
     }
 
     fun decrementQuantity() {
-        if(quantity.value == 1) {
+        if(quantity.value <= 1) {
             return
         }
         _quantity.value -= 1
     }
 
-    fun addToCart(restaurant:String, foodItemId: String) {
+    fun addToCart(restaurantId:String, foodItemId: String) {
         viewModelScope.launch {
             _uiState.value = FoodDetailsUiState.Loading
             val response = safeApiCall {
@@ -55,13 +56,13 @@ class FoodDetailsViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel
             when(response){
                 is ApiResponse.Success -> {
                     _uiState.value = FoodDetailsUiState.Success
-                    _event.emit(FoodDetailsEvent.OnAddToCart)
+                    _event.emit(FoodDetailsEvent.onAddToCart)
                 }
                 is ApiResponse.Error -> {
-                    _uiState.value = FoodDetailsUiState.Error(response.message)
-                    _event.emit(FoodDetailsEvent.showErrorDialog(response.message))
+                    _uiState.value = FoodDetailsUiState.Error(response.message.orEmpty())
+                    _event.emit(FoodDetailsEvent.showErrorDialog(response.message?: "Failed to add item to cart."))
                 }
-                else {
+                else-> {
                     _uiState.value = FoodDetailsUiState.Error("Unknown Error")
                     _event.emit(FoodDetailsEvent.showErrorDialog("Unknown error"))
                 }
@@ -74,7 +75,6 @@ class FoodDetailsViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel
             _event.emit(FoodDetailsEvent.goToCart)
         }
     }
-
 
     sealed class FoodDetailsUiState {
         object Nothing : FoodDetailsUiState()

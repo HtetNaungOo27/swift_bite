@@ -20,8 +20,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -44,7 +46,10 @@ import com.example.foodhub_android.ui.features.restaurant_details.RestaurantDeta
 import com.example.foodhub_android.ui.features.restaurant_details.RestaurantDetails
 import kotlinx.coroutines.flow.collectLatest
 
-@OptIn(ExperimentalSharedTransitionApi::class)
+@OptIn(
+    ExperimentalSharedTransitionApi::class,
+    ExperimentalMaterial3Api::class)
+
 @Composable
 fun SharedTransitionScope.FoodDetailsScreen(
     navController: NavController,
@@ -52,7 +57,7 @@ fun SharedTransitionScope.FoodDetailsScreen(
     animatedVisibilityScope: AnimatedVisibilityScope,
     viewModel: FoodDetailsViewModel = hiltViewModel()
 ) {
-    val showErrorDialog = remember {
+    val showSuccessDialog = remember {
         mutableStateOf(false)
     }
     val showErrorDialog = remember {
@@ -60,16 +65,16 @@ fun SharedTransitionScope.FoodDetailsScreen(
     }
     val count = viewModel.quantity.collectAsStateWithLifecycle()
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
-    val isloading = remember {
+    val isLoading = remember {
         mutableStateOf(false)
     }
 
     when (uiState.value) {
         FoodDetailsViewModel.FoodDetailsUiState.Loading -> {
-            isloading.value =true
+            isLoading.value =true
         }
         else -> {
-            isloading.value = false
+            isLoading.value = false
         }
     }
     LaunchedEffect(Unit) {
@@ -95,7 +100,9 @@ fun SharedTransitionScope.FoodDetailsScreen(
             restaurantID = foodItem.id,
             onBackButton = {
                 navController.popBackStack()
-            }) {}
+            },
+            onFavoriteButton = { TODO() }
+        )
         RestaurantDetails(
             title = foodItem.name,
             description = foodItem.description,
@@ -114,54 +121,66 @@ fun SharedTransitionScope.FoodDetailsScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Image(painter = painterResource(id = R.drawable.add),
                     contentDescription = null,
-                    modifier = Modifier.size(91.dp).clickable{viewModel.incrementQuantity() } )
+                    modifier = Modifier
+                        .size(91.dp)
+                        .clickable { viewModel.incrementQuantity() } )
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(text = "${count.value}",
                     style = MaterialTheme.typography.titleLarge)
                 Spacer(modifier = Modifier.width(10.dp))
                 Image(painter = painterResource(id = R.drawable.minus),
                     contentDescription = null,
-                    modifier = Modifier.clip(CircleShape).clickable{viewModel.decrementQuantity() })
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .clickable { viewModel.decrementQuantity() })
             }
         }
         Spacer(modifier = Modifier.weight(1f))
-        Button(onClick = {
-            viewModel.addToCart(
-            restaurantId = foodItem.restaurantId,
-            foodItemId = foodItem.id
-        ) }, enabled = isloading.value, modifier = Modifier.padding(8.dp), contentPadding = PaddingValues(0.dp)) {
-            Row(
-                modifier = Modifier
-                    .background(MaterialTheme.colorScheme.primary)
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-                    .clip(RoundedCornerShape(32.dp)),
-                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-            ) {
-                AnimatedVisibility(visible = isloading.value) {
+        Button(
+            onClick = {
+                viewModel.addToCart(
+                    restaurantId = foodItem.restaurantId,
+                    foodItemId = foodItem.id
+                )
+            },
+            enabled = !isLoading.value,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = RoundedCornerShape(32.dp)
+        ) {
+            // Show Icon and Text when NOT loading
+            AnimatedVisibility(visible = !isLoading.value) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Image(
                         painter = painterResource(id = R.drawable.cart),
                         contentDescription = null
                     )
-                    Spacer(modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "Add to Cart".uppercase(),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
-                AnimatedVisibility(visible = isloading.value) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                }
-
-
+            }
+            // Show Spinner when LOADING
+            AnimatedVisibility(visible = isLoading.value) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp
+                )
             }
         }
     }
     if (showSuccessDialog.value) {
-        ModalBottomSheet (onDimssRequest = { showSuccessDialog.value = false }) {
+        ModalBottomSheet(
+            onDismissRequest = { showSuccessDialog.value = false } ,
+        ) {
             Column (
                 modifier = Modifier
-                    .fillMaxwidth()
-                    .padding(16.dp )
+                    .fillMaxWidth()
+                    .padding(16.dp)
             ){
                 Text(
                     text = "Item added to cart",
@@ -173,7 +192,7 @@ fun SharedTransitionScope.FoodDetailsScreen(
                     showErrorDialog.value = false
                     viewModel.goToCart()
                 }, modifier = Modifier
-                    .padding(horizontal =16.dp)
+                    .padding(horizontal = 16.dp)
                     .fillMaxWidth()){
                     Text(text = "Go to Cart")
                 }
@@ -188,13 +207,41 @@ fun SharedTransitionScope.FoodDetailsScreen(
         }
     }
     if (showErrorDialog.value) {
-        ModalBottomSheet(onDismissRequest = { showSuccessDialog.value = false}) {
-            BasicDialog(
-                title = "Error",
-                description = (uiState.value as? FoodDetailsViewModel.FoodDetailsUiState.Error)?.message
-                    ?: "Failed to add to cart"
-            ){
+        ModalBottomSheet(
+            onDismissRequest = {
                 showErrorDialog.value = false
+            }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp)
+            ) {
+                Text(
+                    text = "Error",
+                    style = MaterialTheme.typography.headlineMedium
+                )
+
+                Spacer(modifier = Modifier.size(16.dp))
+
+                Text(
+                    text = (
+                            uiState.value as? FoodDetailsViewModel.FoodDetailsUiState.Error
+                            )?.message ?: "Failed to add to cart"
+                )
+
+                Spacer(modifier = Modifier.size(24.dp))
+
+                Button(
+                    onClick = {
+                        showErrorDialog.value = false
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("OK")
+                }
+
+                Spacer(modifier = Modifier.size(16.dp))
             }
         }
     }

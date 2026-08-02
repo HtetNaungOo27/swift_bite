@@ -32,9 +32,13 @@ suspend fun <T> safeApiCall(
                 message = "Response body is empty"
             )
         } else {
+            val serverMessage = response.errorBody()?.string()?.takeIf { it.isNotBlank() }
             ApiResponse.Error(
                 code = response.code(),
-                message = response.errorBody()?.string() ?: "Unknown error"
+                message = serverMessage ?: when (response.code()) {
+                    401 -> "Your session has expired. Please sign in again."
+                    else -> "Request failed (${response.code()})"
+                }
             )
         }
     } catch (exception: kotlin.Exception) {

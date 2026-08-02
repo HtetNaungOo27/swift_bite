@@ -15,21 +15,6 @@ import retrofit2.converter.gson.GsonConverterFactory
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
     @Provides
-    fun provideClient(session: FoodHubSession): OkHttpClient{
-        val client = OkHttpClient.Builder()
-        client.addInterceptor {  chain ->
-            val request = chain.request().newBuilder()
-                .addHeader("Authoriztion", "Bearer ${session.getToken()}")
-                .build()
-            chain.proceed(request)
-        }
-        client.addInterceptor(HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
-        })
-        return client.build()
-    }
-
-    @Provides
     fun provideSession(@ApplicationContext context: Context): FoodHubSession =
         FoodHubSession(context)
 
@@ -52,7 +37,7 @@ object NetworkModule {
     fun provideRetrofit(client: OkHttpClient):Retrofit{
         return Retrofit.Builder()
             .client(client)
-            .baseUrl("http://10.0.2.2:8081/")
+            .baseUrl("http://10.0.2.2:8080/")
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }

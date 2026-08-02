@@ -44,6 +44,7 @@ import com.example.foodhub_android.R
 import com.example.foodhub_android.data.models.FoodItem
 import com.example.foodhub_android.ui.features.restaurant_details.RestaurantDetailHeader
 import com.example.foodhub_android.ui.features.restaurant_details.RestaurantDetails
+import com.example.foodhub_android.ui.navigation.Cart
 import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(
@@ -89,6 +90,7 @@ fun SharedTransitionScope.FoodDetailsScreen(
 
                 }
                 is FoodDetailsViewModel.FoodDetailsEvent.goToCart -> {
+                    navController.navigate(Cart)
 
                 }
             }
@@ -118,22 +120,15 @@ fun SharedTransitionScope.FoodDetailsScreen(
                 style = MaterialTheme.typography.headlineLarge
             )
             Spacer(modifier = Modifier.weight(1f))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Image(painter = painterResource(id = R.drawable.add),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(91.dp)
-                        .clickable { viewModel.incrementQuantity() } )
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(text = "${count.value}",
-                    style = MaterialTheme.typography.titleLarge)
-                Spacer(modifier = Modifier.width(10.dp))
-                Image(painter = painterResource(id = R.drawable.minus),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .clickable { viewModel.decrementQuantity() })
-            }
+            FoodItemCounter(
+                onCounterIncrement = {
+                    viewModel.incrementQuantity()
+                },
+                onCounterDecrement = {
+                    viewModel.decrementQuantity()
+                },
+                count = count.value
+            )
         }
         Spacer(modifier = Modifier.weight(1f))
         Button(
@@ -184,7 +179,7 @@ fun SharedTransitionScope.FoodDetailsScreen(
             ){
                 Text(
                     text = "Item added to cart",
-                    style = MaterialTheme.typography.headlineMedium
+                    style = MaterialTheme.typography.titleLarge
                 )
                 Spacer(modifier = Modifier.size(16.dp))
 
@@ -244,5 +239,25 @@ fun SharedTransitionScope.FoodDetailsScreen(
                 Spacer(modifier = Modifier.size(16.dp))
             }
         }
+    }
+}
+
+@Composable
+fun FoodItemCounter(onCounterIncrement:() -> Unit, onCounterDecrement: () -> Unit, count: Int){
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Image(painter = painterResource(id = R.drawable.add),
+            contentDescription = null,
+            modifier = Modifier
+                .size(91.dp)
+                .clickable { onCounterIncrement.invoke() } )
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(text = "${count}",
+            style = MaterialTheme.typography.titleLarge)
+        Spacer(modifier = Modifier.width(10.dp))
+        Image(painter = painterResource(id = R.drawable.minus),
+            contentDescription = null,
+            modifier = Modifier
+                .clip(CircleShape)
+                .clickable { onCounterDecrement.invoke() })
     }
 }

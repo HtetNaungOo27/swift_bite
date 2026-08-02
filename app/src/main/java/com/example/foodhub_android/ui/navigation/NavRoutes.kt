@@ -20,6 +20,10 @@ data class RestaurantDetails(
     val restaurantName : String,
     val restaurantImageUrl: String,
 )
+@Serializable
+data class FoodDetails(val foodItem: FoodItem)
+@Serializable
+object Cart
 
 @Serializable
 data class FoodDetails(val foodItem: FoodItem)

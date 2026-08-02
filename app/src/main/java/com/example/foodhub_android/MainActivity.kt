@@ -50,6 +50,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.reflect.typeOf
 import androidx.compose.animation.SharedTransitionLayout
+import com.example.foodhub_android.ui.features.cart.CartScreen
 import com.example.foodhub_android.ui.features.food_item_details.FoodDetailsScreen
 
 
@@ -164,6 +165,9 @@ class MainActivity : ComponentActivity() {
                                     foodItem = route.foodItem,
                                     this
                                 )
+                            }
+                            composable<Cart> () {
+                                CartScreen(navController)
                             }
                         }
                     }

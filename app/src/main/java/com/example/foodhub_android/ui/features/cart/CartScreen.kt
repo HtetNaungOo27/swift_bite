@@ -1,8 +1,7 @@
 package com.example.foodhub_android.ui.features.cart
 
-import android.R.attr.data
-import android.R.attr.text
-import android.icu.util.Currency
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -24,28 +24,46 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.foodhub_android.R
-
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.example.foodhub_android.data.models.CartItem
 import com.example.foodhub_android.data.models.CheckoutDetails
 import com.example.foodhub_android.ui.features.food_item_details.FoodItemCounter
 import com.example.foodhub_android.utils.StringUtils
+import kotlinx.coroutines.flow.collectLatest
 
 @Composable
 fun CartScreen(navController: NavController, viewModel: CartViewModel = hiltViewModel()){
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
+    val showErrorDialog = remember {
+        mutableStateOf(false)
+    }
+    LaunchedEffect(key1 = true) {
+        viewModel.event.collectLatest {
+            when(it){
+                is CartViewModel.CartEvent.onItemRemoveError,
+                is CartViewModel.CartEvent.showErrorDialog,
+                is CartViewModel.CartEvent.onQuantityUpdateError -> {
+                    showErrorDialog.value = true
+                }
+                else -> {
+
+                }
+            }
+        }
+    }
 
     Column(modifier = Modifier
         .fillMaxWidth()
@@ -61,13 +79,13 @@ fun CartScreen(navController: NavController, viewModel: CartViewModel = hiltView
                 }
             }
             is CartViewModel.CartUiState.Success -> {
-                val date =uiState.value as CartViewModel.CartUiState.Success).data
+                val data = (uiState.value as CartViewModel.CartUiState.Success).data
                 LazyColumn{
                     items(data.items){
                         CartItemView(cartItem = it, onIncrement = {cartItem, quantity ->
-                            viewModel.inCrementQuantity(cartItem, quantity)
+                            viewModel.incrementQuantity(cartItem)
                         }, onDecrement = { cartItem , quantity ->
-                            viewModel.decrementQuantity(cartItem,quantity)
+                            viewModel.decrementQuantity(cartItem)
                         }, onRemove = {
                             viewModel.removeItem(it)
                         })
@@ -82,25 +100,42 @@ fun CartScreen(navController: NavController, viewModel: CartViewModel = hiltView
                     horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
                     verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
                 ) {
-                    val message =uiState.value as CartViewModel.CartUiState.Error).message
+                    val message = (uiState.value as CartViewModel.CartUiState.Error).message
                     Text(text = message, style = MaterialTheme.typography.bodyMedium)
                     Button(onClick = { /*TOdO*/}) {
                         Text(text = "Retry")
                     }
                 }
 
-        }
+            }
 
             CartViewModel.CartUiState.Nothing -> {}
-    }
-        Spacer(modifier = Modifier.weight(1f))
-        if (uiState.value is CartViewModel.CartUiState.Success) {
-            Button(onClick = {viewModel.checkout()}, modifier = Modifier.fillMaxWidth()) {
-                Text(text = "Checkout")
+        }
+            Spacer(modifier = Modifier.weight(1f))
+            if (uiState.value is CartViewModel.CartUiState.Success) {
+                Button(onClick = {viewModel.checkout()}, modifier = Modifier.fillMaxWidth()) {
+                    Text(text = "Checkout")
+                }
             }
         }
-}
-}
+    if (showErrorDialog.value) {
+        AlertDialog(
+            onDismissRequest = { showErrorDialog.value = false },
+            title = {
+                Text(text = viewModel.errorTitle)
+            },
+            text = {
+                Text(text = viewModel.errorMessage)
+            },
+            confirmButton = {
+                TextButton(onClick = { showErrorDialog.value = false }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
+    }
 
 @Composable
 fun CheckoutDetailsView(checkoutDetails: CheckoutDetails) {
@@ -125,6 +160,7 @@ fun CheckoutRowItem(title: String, value: Double, currency: String) {
         VerticalDivider()
 
     }
+}
 
 @Composable
 fun CartItemView(
@@ -182,7 +218,6 @@ fun CartItemView(
     }
 
     }
-}
 
 @Composable
 fun CartHeaderView(onBack: () -> Unit) {

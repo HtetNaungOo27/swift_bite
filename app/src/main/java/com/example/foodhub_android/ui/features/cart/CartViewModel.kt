@@ -2,6 +2,7 @@ package com.example.foodhub_android.ui.features.cart
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.foodhub_android.data.FoodApi
 import com.example.foodhub_android.data.models.CartItem
 import com.example.foodhub_android.data.models.CartResponse
 import com.example.foodhub_android.data.models.UpdateCartItemRequest
@@ -16,13 +17,15 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class CartViewModel @Inject constructor() : ViewModel() {
+class CartViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel() {
 
+    var errorTitle: String = ""
+    var errorMessage: String = ""
     private val _uiState = MutableStateFlow<CartUiState>(CartUiState.Loading)
     val uiState = _uiState.asStateFlow()
     private val _event = MutableSharedFlow<CartEvent>()
     val event = _event.asSharedFlow()
-     private val CartResponse: CartResponse? = null
+    private var cartResponse: CartResponse? = null
 
     init {
         getCart()
@@ -33,28 +36,28 @@ class CartViewModel @Inject constructor() : ViewModel() {
             val res = safeApiCall { foodApi.getCart() }
             when (res) {
                 is ApiResponse.Success -> {
-                    CartResponse = res.data
+                    cartResponse = res.data
                     _uiState.value = CartUiState.Success(res.data)
                 }
                 is ApiResponse.Error -> {
-                    _uiState.value = CartUiState.Error(res.message)
+                    _uiState.value = CartUiState.Error(res.message.orEmpty())
                 }
                 else -> {
-                    _uiState.value = CartUiState.Error("An error occured")
+                    _uiState.value = CartUiState.Error("An error occoured")
                 }
             }
         }
     }
 
-    fun inCrementQuantity(cartItem: CartItem, quantity: Int) {
-        if(CartItem.quantity == 5) {
+    fun incrementQuantity(cartItem: CartItem) {
+        if (cartItem.quantity >= 5) {
             return
         }
         updateItemQuantity(cartItem, cartItem.quantity + 1)
     }
 
-    fun decrementQuantity(cartItem: CartItem, quantity: Int){
-        if(CartItem.quantity == 1) {
+    fun decrementQuantity(cartItem: CartItem) {
+        if (cartItem.quantity <= 1) {
             return
         }
         updateItemQuantity(cartItem, cartItem.quantity - 1)
@@ -63,49 +66,74 @@ class CartViewModel @Inject constructor() : ViewModel() {
         viewModelScope.launch {
             _uiState.value = CartUiState.Loading
             val res =
-                safeApiCall { foodApi.updateCart(UpdateCartItemRequest(cartItem.id, quantity)) }
+                safeApiCall {
+                    foodApi.updateCart(
+                        UpdateCartItemRequest(cartItemId = cartItem.id, quantity = quantity)
+                    )
+                }
             when (res) {
                 is ApiResponse.Success -> {
-
                     getCart()
                 }
-
                 is ApiResponse.Error -> {
-                    CartResponse?. let {
-
-                        _uiState.value = CartEvent.Success(CartResponse!!)
+                    cartResponse?.let {
+                        _uiState.value = CartUiState.Success(it)
                     }
                     _event.emit(CartEvent.onQuantityUpdateError)
                 }
-
-
-            }
                 else -> {
+                    cartResponse?.let {
+                        _uiState.value = CartUiState.Success(it)
+                    }
+                    errorTitle = "Cannot Update Quantity."
+                    errorMessage = "An error occurred while updating the quantity of the item."
                     _event.emit(CartEvent.onQuantityUpdateError)
                 }
             }
-
         }
-
-    }
-    fun removeItem(cartItem: CartItem){
-
     }
 
-    fun checkout(){
-
+    fun removeItem(cartItem: CartItem) {
+        viewModelScope.launch {
+            _uiState.value = CartUiState.Loading
+            val res = safeApiCall { foodApi.deleteCartItem(cartItem.id) }
+            when (res) {
+                is ApiResponse.Success -> {
+                    getCart()
+                }
+                is ApiResponse.Error -> {
+                    _event.emit(CartEvent.onItemRemoveError)
+                    getCart()
+                }
+                else -> {
+                    cartResponse?.let {
+                        _uiState.value = CartUiState.Success(cartResponse!!)
+                    }
+                    errorTitle = "Cannot Delete."
+                    errorMessage = "An error occurred while removing the item from the cart."
+                    _event.emit(CartEvent.onItemRemoveError)
+                }
+            }
+        }
     }
 
-    sealed class CartUiState{
+
+    fun checkout() {
+        viewModelScope.launch {
+            _event.emit(CartEvent.OnCheckout)
+        }
+    }
+    sealed class CartUiState {
         object Nothing : CartUiState()
         object Loading : CartUiState()
         data class Success(val data: CartResponse) : CartUiState()
         data class Error(val message: String) : CartUiState()
     }
-    sealed class CartEvent{
+
+    sealed class CartEvent {
         object showErrorDialog : CartEvent()
         object OnCheckout : CartEvent()
-        object ItemRemoveError: CartEvent()
-
+        object onQuantityUpdateError : CartEvent()
+        object onItemRemoveError : CartEvent()
     }
 }

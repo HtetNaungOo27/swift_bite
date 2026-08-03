@@ -35,6 +35,7 @@ import com.example.foodhub_android.ui.features.auth.signup.SignUpScreen
 import com.example.foodhub_android.ui.features.home.HomeScreen
 import com.example.foodhub_android.ui.features.restaurant_details.RestaurantDetailScreen
 import com.example.foodhub_android.ui.navigation.AuthScreen
+import com.example.foodhub_android.ui.navigation.Cart
 import com.example.foodhub_android.ui.navigation.FoodDetails
 import com.example.foodhub_android.ui.navigation.Home
 import com.example.foodhub_android.ui.navigation.Login
@@ -166,7 +167,7 @@ class MainActivity : ComponentActivity() {
                                     this
                                 )
                             }
-                            composable<Cart> () {
+                            composable<Cart> {
                                 CartScreen(navController)
                             }
                         }

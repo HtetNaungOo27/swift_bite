@@ -9,6 +9,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -51,8 +52,22 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.reflect.typeOf
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.foodhub_android.ui.features.cart.CartScreen
 import com.example.foodhub_android.ui.features.food_item_details.FoodDetailsScreen
+import com.example.foodhub_android.ui.navigation.NavRoute
+import com.example.foodhub_android.ui.navigation.Notification
+import okhttp3.Route
 
 
 @AndroidEntryPoint
@@ -61,8 +76,22 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var foodApi: FoodApi
+
     @Inject
     lateinit var session: FoodHubSession
+
+    sealed class BottomNavItem(val route: NavRoute, val icon: Int) {
+        object Home :
+            BottomNavItem(com.example.foodhub_android.ui.navigation.Home, R.drawable.ic_home)
+
+        object Cart :
+            BottomNavItem(com.example.foodhub_android.ui.navigation.Cart, R.drawable.ic_cart)
+
+        object Notification : BottomNavItem(
+            com.example.foodhub_android.ui.navigation.Notification, R.drawable.ic_notification)
+
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         installSplashScreen().apply {
@@ -101,8 +130,42 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             FoodHubAndroidTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    val navController = rememberNavController()
+
+                val shouldShowBottomNav = remember {
+                    mutableStateOf(false)
+                }
+                val navItems = listOf(
+                    BottomNavItem.Home,
+                    BottomNavItem.Cart,
+                    BottomNavItem.Notification,
+
+                )
+                val navController = rememberNavController()
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    bottomBar = {
+                        val currentRoute = navController.currentBackStackEntryAsState().value?.destination
+                        AnimatedVisibility(visible = shouldShowBottomNav.value) {
+
+                            NavigationBar {
+                                navItems.forEach { item ->
+                                    val selected = currentRoute?.hierarchy?.any { it.route == item.route::class.qualifiedName } == true
+
+                                    NavigationBarItem(
+                                        selected = selected,
+                                        onClick = {
+                                            navController.navigate(item.route)
+                                        },
+                                        icon = {
+                                            Icon(painter = painterResource(id = item.icon), contentDescription = null,
+                                                tint = if (selected) MaterialTheme.colorScheme.primary else Color.Gray)
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }) { innerPadding ->
+
                     SharedTransitionLayout {
                         NavHost(
                             navController = navController,
@@ -135,18 +198,23 @@ class MainActivity : ComponentActivity() {
 
                         ) {
                             composable<SignUp> {
+                                shouldShowBottomNav.value = false
                                 SignUpScreen(navController)
                             }
                             composable<AuthScreen> {
+                                shouldShowBottomNav.value = false
                                 AuthScreen(navController)
                             }
                             composable<Login> {
+                                shouldShowBottomNav.value = false
                                 SignInScreen(navController)
                             }
                             composable<Home> {
+                                shouldShowBottomNav.value = true
                                 HomeScreen(navController)
                             }
                             composable<RestaurantDetails> {
+                                shouldShowBottomNav.value = false
                                 val route = it.toRoute<RestaurantDetails>()
                                 RestaurantDetailScreen(
                                     navController = navController,
@@ -160,6 +228,7 @@ class MainActivity : ComponentActivity() {
                             composable<FoodDetails>(
                                 typeMap = mapOf(typeOf<FoodItem>() to foodItemNavType)
                             ) {
+                                shouldShowBottomNav.value = false
                                 val route = it.toRoute<FoodDetails>()
                                 FoodDetailsScreen(
                                     navController,
@@ -168,15 +237,23 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                             composable<Cart> {
+                                shouldShowBottomNav.value = true
                                 CartScreen(navController)
+                            }
+
+                            composable<Notification> {
+                                shouldShowBottomNav.value = false
+                                Box {
+
+                                }
                             }
                         }
                     }
                 }
             }
         }
-        if(::foodApi.isInitialized){
-            Log.d("MainActivity","FoodApi initialized.")
+        if (::foodApi.isInitialized) {
+            Log.d("MainActivity", "FoodApi initialized.")
         }
         CoroutineScope(Dispatchers.IO).launch {
             delay(3000)
@@ -193,13 +270,13 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
     )
 }
 
-//@Preview(showBackground = true)
-//@Composable
-//fun GreetingPreview() {
-//    FoodHubAndroidTheme {
-//        Greeting("Android")
-//    }
-//}
+@Preview(showBackground = true)
+@Composable
+fun GreetingPreview() {
+    FoodHubAndroidTheme {
+        Greeting("Android")
+    }
+}
 
 @Preview(showBackground = true)
 @Composable

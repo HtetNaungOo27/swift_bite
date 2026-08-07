@@ -54,4 +54,8 @@ interface FoodApi {
 
     @DELETE("/cart/{cartItemId}")
     suspend fun deleteCartItem(@Path("cartItemId") cartItemId: String): Response<GenericMsgResponse>
+
+    @GET("/adress")
+    suspend fun getUserAddress(): Response<GenericMsgResponse>
+
 }

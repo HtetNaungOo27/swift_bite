@@ -52,23 +52,36 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.reflect.typeOf
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.foodhub_android.ui.features.cart.CartScreen
+import com.example.foodhub_android.ui.features.cart.CartViewModel
 import com.example.foodhub_android.ui.features.food_item_details.FoodDetailsScreen
+import com.example.foodhub_android.ui.navigation.AddressList
 import com.example.foodhub_android.ui.navigation.NavRoute
 import com.example.foodhub_android.ui.navigation.Notification
 import okhttp3.Route
-
+import com.example.foodhub_android.ui.theme.Mustard
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -141,13 +154,17 @@ class MainActivity : ComponentActivity() {
 
                 )
                 val navController = rememberNavController()
+                val cartViewModel: CartViewModel = hiltViewModel()
+                val cartItemSize = cartViewModel.cartItemCount.collectAsStateWithLifecycle()
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
                     bottomBar = {
                         val currentRoute = navController.currentBackStackEntryAsState().value?.destination
                         AnimatedVisibility(visible = shouldShowBottomNav.value) {
 
-                            NavigationBar {
+                            NavigationBar(
+                                containerColor = Color.White
+                            ) {
                                 navItems.forEach { item ->
                                     val selected = currentRoute?.hierarchy?.any { it.route == item.route::class.qualifiedName } == true
 
@@ -157,10 +174,37 @@ class MainActivity : ComponentActivity() {
                                             navController.navigate(item.route)
                                         },
                                         icon = {
-                                            Icon(painter = painterResource(id = item.icon), contentDescription = null,
-                                                tint = if (selected) MaterialTheme.colorScheme.primary else Color.Gray)
-                                        }
-                                    )
+                                            Box(modifier = Modifier.size(48.dp)) {
+
+                                                Icon(
+                                                    painter = painterResource(id = item.icon),
+                                                    contentDescription = null,
+                                                    tint = if (selected) MaterialTheme.colorScheme.primary else Color.Gray,
+                                                    modifier = Modifier.align(Alignment.Center)
+                                                )
+
+                                                if (item.route == Cart && cartItemSize.value > 0) {
+                                                    Box(
+                                                        modifier = Modifier.size(16.dp)
+                                                            .clip(CircleShape)
+                                                            .align(Alignment.TopEnd)
+                                                            .background(Mustard)
+                                                    ) {
+                                                        Text(
+                                                            text = "${cartItemSize.value}",
+                                                            modifier = Modifier
+                                                                .align(Alignment.Center),
+                                                            color = Color.White,
+                                                            style = TextStyle(fontSize = 10.sp)
+                                                        )
+
+                                                    }
+
+                                                }
+
+                                            }
+
+                                        })
                                 }
                             }
                         }
@@ -233,19 +277,25 @@ class MainActivity : ComponentActivity() {
                                 FoodDetailsScreen(
                                     navController,
                                     foodItem = route.foodItem,
-                                    this
+                                    this,
+                                    onItemAddedToCart = {cartViewModel.getCart()}
+
                                 )
                             }
                             composable<Cart> {
                                 shouldShowBottomNav.value = true
-                                CartScreen(navController)
+                                CartScreen(navController, cartViewModel)
                             }
 
                             composable<Notification> {
-                                shouldShowBottomNav.value = false
+                                shouldShowBottomNav.value = true
                                 Box {
 
                                 }
+                            }
+                            composable<AddressList> {
+                                shouldShowBottomNav.value = false
+
                             }
                         }
                     }

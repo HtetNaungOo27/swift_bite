@@ -30,4 +30,5 @@ object Cart: NavRoute
 @Serializable
 object Notification: NavRoute
 
-
+@Serializable
+object AddressList: NavRoute

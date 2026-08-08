@@ -2,6 +2,7 @@ package com.example.foodhub_android.data
 
 import com.example.foodhub_android.data.models.AddToCartRequest
 import com.example.foodhub_android.data.models.AddToCartResponse
+import com.example.foodhub_android.data.models.AddressListResponse
 import com.example.foodhub_android.data.models.SignUpRequest
 import com.example.foodhub_android.data.models.AuthResponse
 import com.example.foodhub_android.data.models.CartResponse
@@ -55,7 +56,7 @@ interface FoodApi {
     @DELETE("/cart/{cartItemId}")
     suspend fun deleteCartItem(@Path("cartItemId") cartItemId: String): Response<GenericMsgResponse>
 
-    @GET("/adress")
-    suspend fun getUserAddress(): Response<GenericMsgResponse>
+    @GET("/address")
+    suspend fun getUserAddress(): Response<AddressListResponse>
 
 }

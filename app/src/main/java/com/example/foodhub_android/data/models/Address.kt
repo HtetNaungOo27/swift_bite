@@ -1,14 +1,14 @@
 package com.example.foodhub_android.data.models
 
 data class Address(
-val id: String? = null,
-val userId: String? = null,
-val addressLine1: String,
-val addressLine2: String? = null,
-val city: String,
-val state: String,
-val zipCode: String,
-val country: String,
-val latitude: Double? = null,
-val longitude: Double? = null
+    val addressLine1: String,
+    val addressLine2: Any,
+    val city: String,
+    val country: String,
+    val id: String,
+    val latitude: Double,
+    val longitude: Double,
+    val state: String,
+    val userId: String,
+    val zipCode: String
 )

@@ -23,12 +23,17 @@ class AddressListViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel
     private val _event = MutableSharedFlow<AddressEvent?>()
     val event = _event.asSharedFlow()
 
+    init {
+        getAddress()
+    }
+
     fun getAddress() {
         viewModelScope.launch {
-            val result = safeApiCall { foodApi.getUserAddresses() }
+            _state.value = AddressState.Loading
+            val result = safeApiCall{ foodApi.getUserAddress() }
             when(result){
                 is com.example.foodhub_android.data.remote.ApiResponse.Success -> {
-                    _state.value = AddressState.Success(result.data)
+                    _state.value = AddressState.Success(result.data.addresses)
                 }
                 is com.example.foodhub_android.data.remote.ApiResponse.Error -> {
                     _state.value = AddressState.Error(result.message.orEmpty())
@@ -48,5 +53,6 @@ class AddressListViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel
     sealed class AddressEvent {
         data class NavigateToAddressDetails(val address: Address) : AddressEvent()
         object NavigateToAddAddress : AddressEvent()
+        object NavigateToEditAddress : AddressEvent()
     }
 }

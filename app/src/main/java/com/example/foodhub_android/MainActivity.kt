@@ -10,7 +10,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -67,20 +66,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.example.foodhub_android.ui.features.address_list.AddressListScreen
 import com.example.foodhub_android.ui.features.cart.CartScreen
 import com.example.foodhub_android.ui.features.cart.CartViewModel
 import com.example.foodhub_android.ui.features.food_item_details.FoodDetailsScreen
 import com.example.foodhub_android.ui.navigation.AddressList
 import com.example.foodhub_android.ui.navigation.NavRoute
 import com.example.foodhub_android.ui.navigation.Notification
-import okhttp3.Route
 import com.example.foodhub_android.ui.theme.Mustard
 
 @AndroidEntryPoint
@@ -295,7 +293,7 @@ class MainActivity : ComponentActivity() {
                             }
                             composable<AddressList> {
                                 shouldShowBottomNav.value = false
-
+                                AddressListScreen(navController)
                             }
                         }
                     }

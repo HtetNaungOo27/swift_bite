@@ -37,12 +37,10 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.foodhub_android.R
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
-import com.example.foodhub_android.data.models.Address
 import com.example.foodhub_android.data.models.CartItem
 import com.example.foodhub_android.data.models.CheckoutDetails
 import com.example.foodhub_android.ui.features.food_item_details.FoodItemCounter

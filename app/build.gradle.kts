@@ -6,7 +6,6 @@ plugins {
     alias(libs.plugins.hilt.android)
 
     alias(libs.plugins.kotlin.serialization)
-    id("org.jetbrains.kotlin.plugin.compose") version "2.3.21" apply false
 }
 
 android {
@@ -82,11 +81,11 @@ dependencies {
     // ... other dependencies ...
 
     // Google Maps for Compose
-    implementation("com.google.maps.android:maps-compose:4.4.1")
+    implementation(libs.maps.compose)
 
     // Google Maps Base SDK (Required by maps-compose)
-    implementation("com.google.android.gms:play-services-maps:18.2.0")
+    implementation(libs.play.services.maps)
 
     // Google Play Services Base (Helps resolve 'com.google.android.gms' issues)
-    implementation("com.google.android.gms:play-services-base:18.5.0")
+    implementation(libs.play.services.base)
 }

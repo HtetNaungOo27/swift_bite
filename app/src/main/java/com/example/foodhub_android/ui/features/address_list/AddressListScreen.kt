@@ -1,11 +1,14 @@
 package com.example.foodhub_android.ui.features.address_list
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import com.example.foodhub_android.R
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -53,13 +56,15 @@ fun AddressListScreen(
     Column(modifier = Modifier.fillMaxSize()) {
         Row(horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxSize()) {
-            IconButton(onClick = { navController.popBackStack() }) {
-                Icon(
+            modifier = Modifier.fillMaxWidth()) {
+                Image(
                     painter = painterResource(id = R.drawable.back),
-                    contentDescription = null
+                    contentDescription = null,
+                    modifier = Modifier.clickable{
+                        navController.popBackStack()
+                    }
                 )
-            }
+
             Text(text = "Address List", style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.size(40.dp))
         }

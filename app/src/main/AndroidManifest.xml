@@ -17,6 +17,9 @@
         android:name=".FoodHubApp"
         tools:targetApi="31">
 
+        <meta-data android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyDHygovQyzsfw8wQ5wBHOTn7NyZj8a_9aY" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

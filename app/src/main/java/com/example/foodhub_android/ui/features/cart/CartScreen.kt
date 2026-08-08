@@ -47,7 +47,7 @@ import com.example.foodhub_android.ui.features.food_item_details.FoodItemCounter
 import com.example.foodhub_android.ui.navigation.AddressList
 import com.example.foodhub_android.utils.StringUtils
 import kotlinx.coroutines.flow.collectLatest
-
+import com.example.foodhub_android.data.models.Address
 @Composable
 fun CartScreen(navController: NavController, viewModel: CartViewModel){
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
@@ -142,8 +142,8 @@ fun CartScreen(navController: NavController, viewModel: CartViewModel){
         }
             Spacer(modifier = Modifier.weight(1f))
             if (uiState.value is CartViewModel.CartUiState.Success) {
-                AddressCard(null,{
-//                    navController.navigate("address_list")
+                AddressCard(null, {
+                    viewModel.onAddressClicked()
                 })
 
                 Button(onClick = {viewModel.checkout()}, modifier = Modifier.fillMaxWidth()) {
@@ -175,6 +175,7 @@ fun AddressCard(address: Address?, onAddressClicked: () -> Unit ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(8.dp)
             .shadow(8.dp)
             .clip(
                 RoundedCornerShape(8.dp)
@@ -186,7 +187,7 @@ fun AddressCard(address: Address?, onAddressClicked: () -> Unit ) {
     )
     if (address != null) {
         Column {
-            Text(text = address.addressLine1, style = MaterialTheme.typography.titleMedium)
+            Text(text = address.addressLine1 , style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.size(4.dp))
             Text(
                 text = "${address.city}, ${address.state}, ${address.country}",

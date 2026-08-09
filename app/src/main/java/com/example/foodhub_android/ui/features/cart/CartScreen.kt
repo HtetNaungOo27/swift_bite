@@ -1,7 +1,5 @@
 package com.example.foodhub_android.ui.features.cart
 
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -19,12 +17,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -38,16 +38,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.foodhub_android.R
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
+import com.example.foodhub_android.R
+import com.example.foodhub_android.data.models.Address
 import com.example.foodhub_android.data.models.CartItem
 import com.example.foodhub_android.data.models.CheckoutDetails
 import com.example.foodhub_android.ui.features.food_item_details.FoodItemCounter
 import com.example.foodhub_android.ui.navigation.AddressList
 import com.example.foodhub_android.utils.StringUtils
 import kotlinx.coroutines.flow.collectLatest
-import com.example.foodhub_android.data.models.Address
+
 @Composable
 fun CartScreen(navController: NavController, viewModel: CartViewModel){
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
@@ -184,7 +185,7 @@ fun AddressCard(address: Address?, onAddressClicked: () -> Unit ) {
             .clickable{ onAddressClicked.invoke() }
             .padding(16.dp)
 
-    )
+    ){
     if (address != null) {
         Column {
             Text(text = address.addressLine1 , style = MaterialTheme.typography.titleMedium)
@@ -199,6 +200,7 @@ fun AddressCard(address: Address?, onAddressClicked: () -> Unit ) {
         Text(text = "Select Address", style = MaterialTheme.typography.bodyMedium)
     }
 
+}
 }
 @Composable
 fun CheckoutDetailsView(checkoutDetails: CheckoutDetails) {

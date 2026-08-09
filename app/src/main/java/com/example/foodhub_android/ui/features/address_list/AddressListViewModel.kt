@@ -45,6 +45,13 @@ class AddressListViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel
 
         }
     }
+
+    fun onAddAddressClicked(){
+        viewModelScope.launch {
+            _event.emit(AddressEvent.NavigateToAddAddress)
+        }
+    }
+
     sealed class AddressState {
         object Loading : AddressState()
         data class Success(val data: List<Address>) : AddressState()

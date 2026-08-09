@@ -133,6 +133,8 @@ class CartViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel() {
         }
     }
 
+
+
     sealed class CartUiState {
         object Nothing : CartUiState()
         object Loading : CartUiState()

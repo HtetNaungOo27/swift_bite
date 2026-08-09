@@ -3,18 +3,19 @@ package com.example.foodhub_android.ui.features.address_list
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import com.example.foodhub_android.R
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,10 +28,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.example.foodhub_android.R
 import com.example.foodhub_android.ui.features.cart.AddressCard
+import com.example.foodhub_android.ui.navigation.AddAddress
 import kotlinx.coroutines.flow.collectLatest
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
 
 
 @Composable
@@ -45,7 +46,7 @@ fun AddressListScreen(
 
                 }
                 is AddressListViewModel.AddressEvent.NavigateToEditAddress -> {
-
+                    navController.navigate(AddAddress)
                 }
                 else -> {
 
@@ -66,7 +67,7 @@ fun AddressListScreen(
                 )
 
             Text(text = "Address List", style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.size(40.dp))
+            Icon(imageVector = Icons.Filled.AddCircle, contentDescription = null, modifier = Modifier.size(24.dp).clickable {viewModel.onAddAddressClicked()})
         }
         when(val addressState = state.value){
             is AddressListViewModel.AddressState.Loading -> {

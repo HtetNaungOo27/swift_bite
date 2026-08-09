@@ -1,29 +1,66 @@
 package com.example.foodhub_android.ui.features.add_address
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.foodhub_android.data.FoodApi
 import com.example.foodhub_android.data.models.Address
+import com.example.foodhub_android.data.models.ReverseGeocodeRequest
+import com.example.foodhub_android.data.remote.ApiResponse
+import com.example.foodhub_android.data.remote.safeApiCall
+import com.example.foodhub_android.location.LocationManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class AddAddressViewModel @Inject constructor(val foodApi: FoodApi): ViewModel() {
+class AddAddressViewModel @Inject constructor(val foodApi: FoodApi,
+    private val locationManager: LocationManager
+): ViewModel() {
 
     private val _uiState = MutableStateFlow<AddAddressState>(AddAddressState.Loading)
     val uiState = _uiState.asStateFlow()
 
-    fun reverseGeocode(lat: Double, lon: Double) {
+    private val _event = MutableSharedFlow<AddAddressEvent>()
+    val event = _event.asSharedFlow()
 
+    private val _address = MutableStateFlow<com.example.foodhub_android.data.models.Address?>(null)
+    val address = _address.asStateFlow()
+    fun getLocation() = locationManager.getLocation()
+
+    fun reverseGeocode(lat: Double, lon: Double) {
+        viewModelScope.launch {
+            _address.value = null
+            val address = safeApiCall { foodApi.reverseGeocode(ReverseGeocodeRequest(lat, lon)) }
+            when (address) {
+                is ApiResponse.Success -> {
+                    _address.value = address.data.addresses.firstOrNull()
+                    _uiState.value = AddAddressState.Success
+                }
+                else -> {
+                    _address.value = null
+                    _uiState.value = AddAddressState.Error("Failed to reverse geocode")
+                }
+            }
+        }
     }
 
     fun addAddress(address : Address){
 
     }
 
+    fun onAddAddressClicked(){
+        viewModelScope.launch {
+            _event.emit(AddAddressEvent.ShowFinalDialog)
+        }
+    }
+
     sealed class AddAddressEvent {
         object NavigateToAddressDetails : AddAddressEvent()
+        object ShowFinalDialog : AddAddressEvent()
     }
     sealed class AddAddressState {
         object Loading : AddAddressState()

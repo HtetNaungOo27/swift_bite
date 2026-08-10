@@ -3,7 +3,6 @@ package com.example.foodhub_android.ui.features.add_address
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.foodhub_android.data.FoodApi
-import com.example.foodhub_android.data.models.Address
 import com.example.foodhub_android.data.models.ReverseGeocodeRequest
 import com.example.foodhub_android.data.remote.ApiResponse
 import com.example.foodhub_android.data.remote.safeApiCall
@@ -48,23 +47,30 @@ class AddAddressViewModel @Inject constructor(val foodApi: FoodApi,
         }
     }
 
-    fun addAddress(address : Address){
 
-    }
 
     fun onAddAddressClicked(){
         viewModelScope.launch {
-            _event.emit(AddAddressEvent.ShowFinalDialog)
+            _uiState.value = AddAddressState.AddressStoring
+            val result = safeApiCall { foodApi.storeAddress(address.value!!)}
+            when(result){
+                is ApiResponse.Success -> {
+                    _uiState.value = AddAddressState.Success
+                    _event.emit(AddAddressEvent.NavigateToAddressList)
+                }
+                else -> {
+                    _uiState.value = AddAddressState.Error("Failed to store address")}
+            }
         }
     }
 
     sealed class AddAddressEvent {
-        object NavigateToAddressDetails : AddAddressEvent()
-        object ShowFinalDialog : AddAddressEvent()
+        object NavigateToAddressList : AddAddressEvent()
     }
     sealed class AddAddressState {
         object Loading : AddAddressState()
         object Success : AddAddressState()
+        object AddressStoring : AddAddressState()
         data class Error(val message: String) : AddAddressState()
     }
 }

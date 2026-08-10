@@ -2,6 +2,7 @@ package com.example.foodhub_android.data
 
 import com.example.foodhub_android.data.models.AddToCartRequest
 import com.example.foodhub_android.data.models.AddToCartResponse
+import com.example.foodhub_android.data.models.Address
 import com.example.foodhub_android.data.models.AddressListResponse
 import com.example.foodhub_android.data.models.AuthResponse
 import com.example.foodhub_android.data.models.CartResponse
@@ -60,6 +61,9 @@ interface FoodApi {
     @GET("/address")
     suspend fun getUserAddress(): Response<AddressListResponse>
 
-    @POST("/reverse-geocode")
+    @POST("addresses/reverse-geocode")
     suspend fun reverseGeocode(@Body request: ReverseGeocodeRequest): Response<AddressListResponse>
+
+    @POST("/addresses")
+    suspend fun storeAddress(@Body address: Address): Response<GenericMsgResponse>
 }

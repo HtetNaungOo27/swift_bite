@@ -46,7 +46,32 @@ import kotlinx.coroutines.flow.collectLatest
 
 
 @Composable
-fun AddAddressScreen(navController: NavController, viewModel: AddAddressViewModel= hiltViewModel()) {
+fun AddAddressScreen(navController: NavController, viewModel: AddAddressViewModel= hiltViewModel()
+) {
+
+    val uiState = viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(key1 = true){
+        viewModel.event.collectLatest {
+            when(it){
+                is AddAddressViewModel.AddAddressEvent.NavigateToAddressList -> {
+                    Toast.makeText(
+                        navController.context,
+                        "Address added successfully",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    navController.previousBackStackEntry?.savedStateHandle?.set(
+                            "isAddressAdded",
+                            true
+                        )
+                    navController.popBackStack()
+                }
+            }
+        }
+
+    }
+
     val isPermissionGranted = remember {
         mutableStateOf(false)
     }
@@ -135,16 +160,28 @@ fun AddAddressScreen(navController: NavController, viewModel: AddAddressViewMode
                     ) {
                         Row (modifier = Modifier.fillMaxWidth()) {
                             Column {
-                                Text(
-                                    text = it.addressLine1,
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                                Spacer(modifier = Modifier.size(4.dp))
-                                Text(
-                                    text = "${it.city}, ${it.state}, ${it.country}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = Color.Gray
-                                )
+                                if (uiState.value is AddAddressViewModel.AddAddressState.Loading) {
+                                    CircularProgressIndicator()
+
+                                } else if (uiState.value is AddAddressViewModel.AddAddressState.Error) {
+                                    Text(
+                                        text = (uiState.value as AddAddressViewModel.AddAddressState.Error).message,
+                                        style = MaterialTheme.typography.titleMedium
+
+                                    )
+                                }
+                                else{
+                                    Text(
+                                        text = it.addressLine1,
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    Spacer(modifier = Modifier.size(4.dp))
+                                    Text(
+                                        text = "${it.city}, ${it.state}, ${it.country}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = Color.Gray
+                                    )
+                                }
                             }
                             Button(onClick = {viewModel.onAddAddressClicked() }) {
                                 Text(text = "Add Address")

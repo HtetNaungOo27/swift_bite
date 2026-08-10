@@ -52,6 +52,12 @@ class AddressListViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel
         }
     }
 
+    fun onAddressSelected(address: Address){
+        viewModelScope.launch {
+            _event.emit(AddressEvent.NavigateBack(address))
+        }
+    }
+
     sealed class AddressState {
         object Loading : AddressState()
         data class Success(val data: List<Address>) : AddressState()
@@ -61,5 +67,6 @@ class AddressListViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel
         data class NavigateToAddressDetails(val address: Address) : AddressEvent()
         object NavigateToAddAddress : AddressEvent()
         object NavigateToEditAddress : AddressEvent()
+        data class NavigateBack(val address: Address) : AddressEvent()
     }
 }

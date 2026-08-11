@@ -94,4 +94,5 @@ dependencies {
     implementation(libs.play.services.maps)
 
     implementation(libs.play.services.base)
+    implementation("com.stripe:stripe-android:21.3.1")
 }

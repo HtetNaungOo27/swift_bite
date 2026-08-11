@@ -47,6 +47,8 @@ import com.example.foodhub_android.data.models.CheckoutDetails
 import com.example.foodhub_android.ui.features.food_item_details.FoodItemCounter
 import com.example.foodhub_android.ui.navigation.AddressList
 import com.example.foodhub_android.utils.StringUtils
+import com.stripe.android.paymentsheet.PaymentSheetResult
+import com.stripe.android.paymentsheet.rememberPaymentSheet
 import kotlinx.coroutines.flow.collectLatest
 
 @Composable
@@ -64,6 +66,15 @@ fun CartScreen(navController: NavController, viewModel: CartViewModel){
         }
     }
 
+    val paymentSheet = rememberPaymentSheet(paymentResultCallback ={
+        if (it is PaymentSheetResult.Completed){
+            viewModel.onPaymentSuccess()
+        }else{
+            viewModel.onPaymentFailed()
+        }
+    } )
+
+
 
     LaunchedEffect(key1 = true) {
         viewModel.event.collectLatest {
@@ -75,6 +86,9 @@ fun CartScreen(navController: NavController, viewModel: CartViewModel){
                 }
                 is CartViewModel.CartEvent.onAddressClicked -> {
                     navController.navigate(AddressList)
+                }
+                is CartViewModel.CartEvent.OnInitiatePayment -> {
+//                    Initiate payment
                 }
 
                 else -> {

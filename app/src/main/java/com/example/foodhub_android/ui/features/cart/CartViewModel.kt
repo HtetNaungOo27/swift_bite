@@ -6,6 +6,8 @@ import com.example.foodhub_android.data.FoodApi
 import com.example.foodhub_android.data.models.Address
 import com.example.foodhub_android.data.models.CartItem
 import com.example.foodhub_android.data.models.CartResponse
+import com.example.foodhub_android.data.models.PaymentIntentRequest
+import com.example.foodhub_android.data.models.PaymentIntentResponse
 import com.example.foodhub_android.data.models.UpdateCartItemRequest
 import com.example.foodhub_android.data.remote.ApiResponse
 import com.example.foodhub_android.data.remote.safeApiCall
@@ -126,7 +128,20 @@ class CartViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel() {
 
     fun checkout() {
         viewModelScope.launch {
-            _event.emit(CartEvent.onAddressClicked)
+            _uiState.value = CartUiState.Loading
+            val paymentDetails = safeApiCall { foodApi.getPaymentIntent(PaymentIntentRequest(address.value!!.id!!)) }
+
+            when (paymentDetails) {
+                is ApiResponse.Success -> {
+                    _event.emit(CartEvent.OnInitiatePayment(paymentDetails.data ))
+                }
+                else -> {
+                    errorTitle = "Cannot Checkout."
+                    errorMessage = "An error occurred while checking out."
+                    _event.emit(CartEvent.showErrorDialog)
+                }
+
+            }
         }
     }
 
@@ -141,6 +156,11 @@ class CartViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel() {
 
     }
 
+    fun onPaymentSuccess() {
+    }
+
+    fun onPaymentFailed() {
+    }
 
     sealed class CartUiState {
         object Nothing : CartUiState()
@@ -152,6 +172,9 @@ class CartViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel() {
     sealed class CartEvent {
         object showErrorDialog : CartEvent()
         object OnCheckout : CartEvent()
+        // ပြင်ရမည့်နေရာ
+        data class OnInitiatePayment(val data: PaymentIntentResponse) : CartEvent()
+
         object onQuantityUpdateError : CartEvent()
         object onItemRemoveError : CartEvent()
         object onAddressClicked  : CartEvent()

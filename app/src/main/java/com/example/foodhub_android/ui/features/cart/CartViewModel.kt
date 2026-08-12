@@ -6,6 +6,7 @@ import com.example.foodhub_android.data.FoodApi
 import com.example.foodhub_android.data.models.Address
 import com.example.foodhub_android.data.models.CartItem
 import com.example.foodhub_android.data.models.CartResponse
+import com.example.foodhub_android.data.models.ConfirmPaymentRequest
 import com.example.foodhub_android.data.models.PaymentIntentRequest
 import com.example.foodhub_android.data.models.PaymentIntentResponse
 import com.example.foodhub_android.data.models.UpdateCartItemRequest
@@ -31,7 +32,7 @@ class CartViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel() {
     private var cartResponse: CartResponse? = null
     private val _cartItemCount = MutableStateFlow(0)
     val cartItemCount = _cartItemCount.asStateFlow()
-
+    private var paymentIntent: PaymentIntentResponse? = null
     private val address = MutableStateFlow<Address?>(null)
     val selectedAddress = address.asStateFlow()
     init {
@@ -133,12 +134,16 @@ class CartViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel() {
 
             when (paymentDetails) {
                 is ApiResponse.Success -> {
+                    paymentIntent = paymentDetails.data
                     _event.emit(CartEvent.OnInitiatePayment(paymentDetails.data ))
+                    _uiState.value = CartUiState.Success(cartResponse!!)
+
                 }
                 else -> {
                     errorTitle = "Cannot Checkout."
                     errorMessage = "An error occurred while checking out."
                     _event.emit(CartEvent.showErrorDialog)
+                    _uiState.value = CartUiState.Success(cartResponse!!)
                 }
 
             }
@@ -156,10 +161,41 @@ class CartViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel() {
 
     }
 
-    fun onPaymentSuccess() {
-    }
+
 
     fun onPaymentFailed() {
+        errorTitle = "Payment Failed"
+        errorMessage = "An error occurred while processing your payment."
+        viewModelScope.launch {
+            _event.emit(CartEvent.showErrorDialog)
+        }
+    }
+
+    fun onPaymentSuccess() {
+        viewModelScope.launch {
+            _uiState.value = CartUiState.Loading
+            val response =
+                safeApiCall { foodApi.verifyPurchase(
+                    ConfirmPaymentRequest(
+                        paymentIntent!!.paymentIntentId,
+                        address.value!!.id!!
+                    ), paymentIntent!!.paymentIntentId
+                    )
+                }
+            when(response){
+                is ApiResponse.Success -> {
+                    _event.emit(CartEvent.OrderSuccess(response.data.orderId))
+                    _uiState.value = CartUiState.Success(cartResponse!!)
+                    getCart()
+                }
+                else -> {
+                    errorTitle = "Payment Failed"
+                    errorMessage = "An error occurred while processing your payment."
+                    _event.emit(CartEvent.showErrorDialog)
+                    _uiState.value = CartUiState.Success(cartResponse!!)
+                }
+            }
+        }
     }
 
     sealed class CartUiState {
@@ -171,8 +207,8 @@ class CartViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel() {
 
     sealed class CartEvent {
         object showErrorDialog : CartEvent()
+        data class OrderSuccess(val orderId: String) : CartEvent()
         object OnCheckout : CartEvent()
-        // ပြင်ရမည့်နေရာ
         data class OnInitiatePayment(val data: PaymentIntentResponse) : CartEvent()
 
         object onQuantityUpdateError : CartEvent()

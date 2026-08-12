@@ -1,0 +1,8 @@
+{
+  "status": "requires_payment_method",
+  "requiresAction": false,
+  "clientSecret": "pi_3QixHEGEfQ6PnBGJ0BbZiCRN_secret_PNVwiA2AafZDQ0nRi5",
+  "orderId": null,
+  "orderStatus": null,
+  "message": "Payment not completed"
+}

@@ -7,6 +7,8 @@ import com.example.foodhub_android.data.models.AddressListResponse
 import com.example.foodhub_android.data.models.AuthResponse
 import com.example.foodhub_android.data.models.CartResponse
 import com.example.foodhub_android.data.models.CategoriesResponse
+import com.example.foodhub_android.data.models.ConfirmPaymentRequest
+import com.example.foodhub_android.data.models.ConfirmPaymentResponse
 import com.example.foodhub_android.data.models.FooditemResponse
 import com.example.foodhub_android.data.models.GenericMsgResponse
 import com.example.foodhub_android.data.models.OAuthRequest
@@ -69,6 +71,11 @@ interface FoodApi {
     @POST("/addresses")
     suspend fun storeAddress(@Body address: Address): Response<GenericMsgResponse>
 
-    @POST("/create-intent")
+    @POST("/payments/create-intent")
     fun getPaymentIntent(@Body request: PaymentIntentRequest): Response<PaymentIntentResponse>
+    @POST("/confirm/{paymentIntentId}")
+    suspend fun verifyPurchase(
+        @Body request: ConfirmPaymentRequest,
+        @Path("paymentIntentId") paymentIntentId: String
+    ) : Response<ConfirmPaymentResponse>
 }

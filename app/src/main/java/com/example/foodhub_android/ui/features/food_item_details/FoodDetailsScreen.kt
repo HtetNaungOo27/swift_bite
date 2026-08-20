@@ -181,7 +181,7 @@ fun SharedTransitionScope.FoodDetailsScreen(
                     .padding(16.dp)
             ){
                 Text(
-                    text = "Item added to cart",
+                    text = "OrderItem added to cart",
                     style = MaterialTheme.typography.titleLarge
                 )
                 Spacer(modifier = Modifier.size(16.dp))

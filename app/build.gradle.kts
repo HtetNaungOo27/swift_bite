@@ -77,15 +77,15 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
     implementation(libs.androidx.compose.material.icons.extended)
-    implementation("org.jetbrains.kotlinx-coroutlines-play-services:1.7.3")
+//    implementation("org.jetbrains.kotlinx-coroutines-play-services:1.7.3")
 
-    implementation("com.google.android.gms:play-services-location:21.3.0")
+//    implementation("com.google.android.gms:play-services-location:21.3.0")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
     implementation("com.google.android.gms:play-services-location:21.3.0")
 
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
+//    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.0")
+//    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
     implementation("com.google.maps.android:maps-compose:4.3.3") // Version အသစ်သုံးပါ
 
 

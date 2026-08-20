@@ -10,6 +10,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -60,7 +61,10 @@ import com.example.foodhub_android.ui.features.cart.CartScreen
 import com.example.foodhub_android.ui.features.cart.CartViewModel
 import com.example.foodhub_android.ui.features.food_item_details.FoodDetailsScreen
 import com.example.foodhub_android.ui.features.home.HomeScreen
+import com.example.foodhub_android.ui.features.order_details.OrderDetailsScreen
+import com.example.foodhub_android.ui.features.order_details.OrderDetailsViewModel
 import com.example.foodhub_android.ui.features.order_success.OrderSuccess
+import com.example.foodhub_android.ui.features.orders.OrderListScreen
 import com.example.foodhub_android.ui.features.restaurant_details.RestaurantDetailScreen
 import com.example.foodhub_android.ui.navigation.AddAddress
 import com.example.foodhub_android.ui.navigation.AddressList
@@ -71,6 +75,7 @@ import com.example.foodhub_android.ui.navigation.Home
 import com.example.foodhub_android.ui.navigation.Login
 import com.example.foodhub_android.ui.navigation.NavRoute
 import com.example.foodhub_android.ui.navigation.Notification
+import com.example.foodhub_android.ui.navigation.OrderList
 import com.example.foodhub_android.ui.navigation.OrderSuccess
 import com.example.foodhub_android.ui.navigation.RestaurantDetails
 import com.example.foodhub_android.ui.navigation.SignUp
@@ -84,6 +89,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.reflect.typeOf
+import com.example.foodhub_android.ui.navigation.OrderDetails
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -105,8 +111,12 @@ class MainActivity : ComponentActivity() {
         object Notification : BottomNavItem(
             com.example.foodhub_android.ui.navigation.Notification, R.drawable.ic_notification)
 
+        object Orders : BottomNavItem(
+            com.example.foodhub_android.ui.navigation.OrderList, R.drawable.ic_orders)
+
     }
 
+    @OptIn(ExperimentalSharedTransitionApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         installSplashScreen().apply {
@@ -153,7 +163,7 @@ class MainActivity : ComponentActivity() {
                     BottomNavItem.Home,
                     BottomNavItem.Cart,
                     BottomNavItem.Notification,
-
+                    BottomNavItem.Orders
                 )
                 val navController = rememberNavController()
                 val cartViewModel: CartViewModel = hiltViewModel()
@@ -307,6 +317,15 @@ class MainActivity : ComponentActivity() {
                                 shouldShowBottomNav.value = false
                                 val orderID = it.toRoute<OrderSuccess>().orderID
                                 OrderSuccess(orderID, navController)
+                            }
+                            composable<OrderList> {
+                                shouldShowBottomNav.value = true
+                                OrderListScreen(navController)
+                            }
+                            composable<OrderDetails> {
+                                shouldShowBottomNav.value = false
+                                val orderID = it.toRoute<OrderDetails>().orderID
+                                OrderDetailsScreen(navController, orderID)
                             }
                         }
                     }

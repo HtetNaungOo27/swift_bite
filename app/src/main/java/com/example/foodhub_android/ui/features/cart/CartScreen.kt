@@ -69,13 +69,20 @@ fun CartScreen(navController: NavController, viewModel: CartViewModel){
         }
     }
 
-    val paymentSheet = rememberPaymentSheet(paymentResultCallback ={
-        if (it is PaymentSheetResult.Completed){
-            viewModel.onPaymentSuccess()
-        }else{
-            viewModel.onPaymentFailed()
+    val paymentSheet = rememberPaymentSheet(paymentResultCallback = {
+        when (it) {
+            is PaymentSheetResult.Completed -> {
+                viewModel.onPaymentSuccess()
+            }
+            is PaymentSheetResult.Canceled -> {
+                android.util.Log.d("PaymentSheet", "Payment canceled by user")
+            }
+            is PaymentSheetResult.Failed -> {
+                android.util.Log.e("PaymentSheet", "Payment failed", it.error)
+                viewModel.onPaymentFailed()
+            }
         }
-    } )
+    })
 
 
 
@@ -169,7 +176,7 @@ fun CartScreen(navController: NavController, viewModel: CartViewModel){
                         tint = Color.Gray
                     )
                     Text(
-                        text = "No items in cart",
+                        text = "No orderItems in cart",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.Gray
                     )

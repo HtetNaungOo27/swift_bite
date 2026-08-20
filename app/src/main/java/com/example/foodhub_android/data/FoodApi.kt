@@ -12,6 +12,8 @@ import com.example.foodhub_android.data.models.ConfirmPaymentResponse
 import com.example.foodhub_android.data.models.FooditemResponse
 import com.example.foodhub_android.data.models.GenericMsgResponse
 import com.example.foodhub_android.data.models.OAuthRequest
+import com.example.foodhub_android.data.models.Order
+import com.example.foodhub_android.data.models.OrderListResponse
 import com.example.foodhub_android.data.models.PaymentIntentRequest
 import com.example.foodhub_android.data.models.PaymentIntentResponse
 import com.example.foodhub_android.data.models.RestaurantsResponse
@@ -62,7 +64,7 @@ interface FoodApi {
     @DELETE("/cart/{cartItemId}")
     suspend fun deleteCartItem(@Path("cartItemId") cartItemId: String): Response<GenericMsgResponse>
 
-    @GET("/address")
+    @GET("/addresses")
     suspend fun getUserAddress(): Response<AddressListResponse>
 
     @POST("addresses/reverse-geocode")
@@ -72,10 +74,16 @@ interface FoodApi {
     suspend fun storeAddress(@Body address: Address): Response<GenericMsgResponse>
 
     @POST("/payments/create-intent")
-    fun getPaymentIntent(@Body request: PaymentIntentRequest): Response<PaymentIntentResponse>
-    @POST("/confirm/{paymentIntentId}")
+    suspend fun getPaymentIntent(@Body request: PaymentIntentRequest): Response<PaymentIntentResponse>
+    @POST("/payments/confirm/{paymentIntentId}")
     suspend fun verifyPurchase(
         @Body request: ConfirmPaymentRequest,
         @Path("paymentIntentId") paymentIntentId: String
     ) : Response<ConfirmPaymentResponse>
+
+    @GET("/orders")
+    suspend fun getOrders(): Response<OrderListResponse>
+
+    @GET("/orders/{orderId}")
+    suspend fun getOrderDetails(@Path("orderId") orderId: String): Response<Order>
 }

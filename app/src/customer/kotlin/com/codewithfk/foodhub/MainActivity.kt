@@ -49,10 +49,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.example.foodhub_android.MainActivity
+import com.example.foodhub_android.R
 import com.example.foodhub_android.data.FoodApi
 import com.example.foodhub_android.data.FoodHubSession
 import com.example.foodhub_android.data.models.FoodItem
-import com.example.foodhub_android.ui.features.add_address.AddAddressScreen
+import com.codewithfk.foodhub.ui.feature.add_address.AddAddressScreen
 import com.example.foodhub_android.ui.features.address_list.AddressListScreen
 import com.example.foodhub_android.ui.features.auth.AuthScreen
 import com.example.foodhub_android.ui.features.auth.login.SignInScreen
@@ -62,8 +64,6 @@ import com.example.foodhub_android.ui.features.cart.CartViewModel
 import com.example.foodhub_android.ui.features.food_item_details.FoodDetailsScreen
 import com.example.foodhub_android.ui.features.home.HomeScreen
 import com.example.foodhub_android.ui.features.order_details.OrderDetailsScreen
-import com.example.foodhub_android.ui.features.order_details.OrderDetailsViewModel
-import com.example.foodhub_android.ui.features.order_success.OrderSuccess
 import com.example.foodhub_android.ui.features.orders.OrderListScreen
 import com.example.foodhub_android.ui.features.restaurant_details.RestaurantDetailScreen
 import com.example.foodhub_android.ui.navigation.AddAddress
@@ -90,6 +90,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.reflect.typeOf
 import com.example.foodhub_android.ui.navigation.OrderDetails
+import kotlin.isInitialized
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -112,7 +113,7 @@ class MainActivity : ComponentActivity() {
             com.example.foodhub_android.ui.navigation.Notification, R.drawable.ic_notification)
 
         object Orders : BottomNavItem(
-            com.example.foodhub_android.ui.navigation.OrderList, R.drawable.ic_orders)
+            OrderList, R.drawable.ic_orders)
 
     }
 
@@ -121,7 +122,7 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         installSplashScreen().apply {
             setKeepOnScreenCondition {
-                showSplashScreen
+                MainActivity.showSplashScreen
             }
             setOnExitAnimationListener { screen ->
                 val zoomX = ObjectAnimator.ofFloat(
@@ -225,7 +226,7 @@ class MainActivity : ComponentActivity() {
                     SharedTransitionLayout {
                         NavHost(
                             navController = navController,
-                            startDestination = if (session.getToken() != null) Home else AuthScreen,
+                            startDestination = if (MainActivity.session.getToken() != null) Home else AuthScreen,
                             modifier = Modifier.padding(innerPadding),
                             enterTransition = {
                                 slideIntoContainer(
@@ -332,12 +333,12 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-        if (::foodApi.isInitialized) {
+        if (MainActivity::foodApi.isInitialized) {
             Log.d("MainActivity", "FoodApi initialized.")
         }
         CoroutineScope(Dispatchers.IO).launch {
             delay(3000)
-            showSplashScreen = false
+            MainActivity.showSplashScreen = false
         }
     }
 }

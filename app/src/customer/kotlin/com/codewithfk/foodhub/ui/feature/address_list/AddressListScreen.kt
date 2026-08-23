@@ -1,4 +1,4 @@
-package com.example.foodhub_android.ui.features.address_list
+package com.codewithfk.foodhub.ui.feature.address_list
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable

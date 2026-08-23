@@ -1,4 +1,4 @@
-package com.example.foodhub_android.ui.features.add_address
+package com.codewithfk.foodhub.ui.feature.add_address
 
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -46,7 +46,7 @@ import kotlinx.coroutines.flow.collectLatest
 
 
 @Composable
-fun AddAddressScreen(navController: NavController, viewModel: AddAddressViewModel= hiltViewModel()
+fun AddAddressScreen(navController: NavController, viewModel: com.codewithfk.foodhub.ui.feature.add_address.AddAddressViewModel = hiltViewModel()
 ) {
 
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()

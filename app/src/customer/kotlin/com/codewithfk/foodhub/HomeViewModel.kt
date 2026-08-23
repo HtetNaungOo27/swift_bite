@@ -1,4 +1,4 @@
-package com.codewithfk.foodhub.ui.feature.home
+package com.codewithfk.foodhub
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

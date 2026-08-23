@@ -1,4 +1,4 @@
-package com.example.foodhub_android.ui.features.order_details
+package com.codewithfk.foodhub.ui.feature.order_details
 
 import android.os.Message
 import androidx.lifecycle.ViewModel

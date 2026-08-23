@@ -1,4 +1,4 @@
-package com.example.foodhub_android
+package com.codewithfk.foodhub
 
 import android.animation.ObjectAnimator
 import android.os.Bundle

@@ -1,4 +1,4 @@
-package com.example.foodhub_android.ui.features.cart
+package com.codewithfk.foodhub.ui.feature.cart
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

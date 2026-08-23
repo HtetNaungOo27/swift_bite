@@ -1,4 +1,4 @@
-package com.example.foodhub_android.ui.features.food_item_details
+package com.codewithfk.foodhub.ui.feature.food_item_details
 
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility

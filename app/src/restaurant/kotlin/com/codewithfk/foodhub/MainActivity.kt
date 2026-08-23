@@ -161,7 +161,6 @@ class MainActivity : ComponentActivity() {
                 }
                 val navItems = listOf(
                     BottomNavItem.Home,
-                    BottomNavItem.Cart,
                     BottomNavItem.Notification,
                     BottomNavItem.Orders
                 )

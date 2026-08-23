@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
 
@@ -38,8 +37,29 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
     buildFeatures {
         compose = true
+    }
+    flavorDimensions += "environment"
+
+    productFlavors {
+        create( "customer") {
+            dimension = "environment"
+        }
+        create( "restaurant") {
+            dimension = "environment"
+            applicationIdSuffix = ".restaurant"
+            resValue("string", "app_name", "FH Restaurant")
+        }
+        create( "rider") {
+            dimension = "environment"
+            applicationIdSuffix = ".rider"
+            resValue("string", "app_name", "FH Rider")
+        }
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.1"
     }
 }
 

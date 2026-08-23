@@ -1,4 +1,4 @@
-package com.example.foodhub_android.ui.features.cart
+package com.codewithfk.foodhub.ui.feature.cart
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background

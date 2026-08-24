@@ -1,4 +1,4 @@
-package com.codewithfk.foodhub
+package com.example.foodhub_android
 
 import android.animation.ObjectAnimator
 import android.os.Bundle
@@ -55,6 +55,7 @@ import com.example.foodhub_android.data.FoodApi
 import com.example.foodhub_android.data.FoodHubSession
 import com.example.foodhub_android.data.models.FoodItem
 import com.codewithfk.foodhub.ui.feature.add_address.AddAddressScreen
+<<<<<<< Updated upstream
 import com.example.foodhub_android.ui.features.address_list.AddressListScreen
 import com.example.foodhub_android.ui.features.auth.AuthScreen
 import com.example.foodhub_android.ui.features.auth.login.SignInScreen
@@ -64,8 +65,21 @@ import com.example.foodhub_android.ui.features.cart.CartViewModel
 import com.example.foodhub_android.ui.features.food_item_details.FoodDetailsScreen
 import com.example.foodhub_android.ui.features.home.HomeScreen
 import com.example.foodhub_android.ui.features.order_details.OrderDetailsScreen
+=======
+import com.codewithfk.foodhub.ui.feature.address_list.AddressListScreen
+import com.example.foodhub_android.ui.features.auth.AuthScreen
+import com.example.foodhub_android.ui.features.auth.login.SignInScreen
+import com.example.foodhub_android.ui.features.auth.signup.SignUpScreen
+import com.codewithfk.foodhub.ui.feature.cart.CartScreen
+import com.codewithfk.foodhub.ui.feature.cart.CartViewModel
+import com.codewithfk.foodhub.ui.feature.food_item_details.FoodDetailsScreen
+import com.codewithfk.foodhub.ui.feature.home.HomeScreen
+import com.codewithfk.foodhub.ui.feature.order_details.OrderDetailsScreen
+import com.codewithfk.foodhub.ui.feature.order_details.OrderDetailsViewModel
+import com.codewithfk.foodhub.ui.feature.order_success.OrderSuccess
+>>>>>>> Stashed changes
 import com.example.foodhub_android.ui.features.orders.OrderListScreen
-import com.example.foodhub_android.ui.features.restaurant_details.RestaurantDetailScreen
+import com.codewithfk.foodhub.ui.feature.restaurant_details.RestaurantDetailScreen
 import com.example.foodhub_android.ui.navigation.AddAddress
 import com.example.foodhub_android.ui.navigation.AddressList
 import com.example.foodhub_android.ui.navigation.AuthScreen

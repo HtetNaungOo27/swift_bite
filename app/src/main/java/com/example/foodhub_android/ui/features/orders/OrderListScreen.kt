@@ -231,7 +231,10 @@ fun OrderDetailsText (order: Order) {
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1
                 )
-                Text(text = "${order.orderItems.size.toString()} items", color = Color.Gray)
+                Text(
+                    text = "${order.items.size.toString()} items",
+                    color = Color.Gray
+                )
                 Text(
                     text = order.restaurant.name,
                     style = MaterialTheme.typography.titleMedium,

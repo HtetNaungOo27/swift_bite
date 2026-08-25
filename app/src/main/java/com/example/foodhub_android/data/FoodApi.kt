@@ -11,6 +11,10 @@ import com.example.foodhub_android.data.models.ConfirmPaymentRequest
 import com.example.foodhub_android.data.models.ConfirmPaymentResponse
 import com.example.foodhub_android.data.models.FooditemResponse
 import com.example.foodhub_android.data.models.GenericMsgResponse
+import com.example.foodhub_android.data.models.FoodItem
+import com.example.foodhub_android.data.models.FoodItemListResponse
+import com.example.foodhub_android.data.models.ImageUploadResponse
+import com.example.foodhub_android.data.models.NotificationListResponse
 import com.example.foodhub_android.data.models.OAuthRequest
 import com.example.foodhub_android.data.models.Order
 import com.example.foodhub_android.data.models.OrderListResponse
@@ -22,11 +26,14 @@ import com.example.foodhub_android.data.models.SignInRequest
 import com.example.foodhub_android.data.models.SignUpRequest
 import com.example.foodhub_android.data.models.UpdateCartItemRequest
 import retrofit2.Response
+import okhttp3.MultipartBody
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.PATCH
+import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -86,4 +93,36 @@ interface FoodApi {
 
     @GET("/orders/{orderId}")
     suspend fun getOrderDetails(@Path("orderId") orderId: String): Response<Order>
+
+    @POST("/notifications/{id}/read")
+    suspend fun readNotification(@Path("id") id: String): Response<GenericMsgResponse>
+
+    @GET("/notifications")
+    suspend fun getNotifications(): Response<NotificationListResponse>
+
+    @GET("/restaurant-owner/profile")
+    suspend fun getRestaurantProfile(): Response<com.example.foodhub_android.data.models.Restaurant>
+
+    @GET("/restaurant-owner/orders")
+    suspend fun getRestaurantOrders(@Query("status") status: String): Response<OrderListResponse>
+
+    @PATCH("/orders/{orderId}/status")
+    suspend fun updateOrderStatus(
+        @Path("orderId") orderId: String,
+        @Body status: Map<String, String>
+    ): Response<GenericMsgResponse>
+
+    @GET("/restaurants/{id}/menu")
+    suspend fun getRestaurantMenu(@Path("id") restaurantId: String): Response<FoodItemListResponse>
+
+    @POST("/restaurants/{id}/menu")
+    suspend fun addRestaurantMenu(
+        @Path("id") restaurantId: String,
+        @Body foodItem: FoodItem
+    ): Response<GenericMsgResponse>
+
+    @Multipart
+    @POST("/images/upload")
+    suspend fun uploadImage(@Part image: MultipartBody.Part): Response<ImageUploadResponse>
+
 }

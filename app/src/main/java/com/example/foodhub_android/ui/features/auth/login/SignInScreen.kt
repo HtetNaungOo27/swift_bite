@@ -53,7 +53,7 @@ import kotlinx.coroutines.flow.collectLatest
 
 
 @Composable
-fun SignInScreen(navController: NavController,viewModel: SignInViewModel = hiltViewModel()) {
+fun SignInScreen(navController: NavController,isCustomer: Boolean = true,viewModel: SignInViewModel = hiltViewModel()) {
     Box(modifier = Modifier.fillMaxSize()) {
 
         val email = viewModel.email.collectAsStateWithLifecycle()
@@ -62,7 +62,7 @@ fun SignInScreen(navController: NavController,viewModel: SignInViewModel = hiltV
         val loading = remember { mutableStateOf(false) }
 
         val uiState = viewModel.uiState.collectAsState()
-        when(uiState.value){
+        when (uiState.value) {
 
             is SignInViewModel.SignInEvent.Error -> {
                 // show error
@@ -84,17 +84,19 @@ fun SignInScreen(navController: NavController,viewModel: SignInViewModel = hiltV
         val context = LocalContext.current
         LaunchedEffect(true) {
             viewModel.navigationEvent.collectLatest { event ->
-                when(event){
+                when (event) {
                     is SignInViewModel.SignInNavigationEvent.NavigateToHome -> {
-                        navController.navigate(Home){
-                            popUpTo(AuthScreen){
+                        navController.navigate(Home) {
+                            popUpTo(AuthScreen) {
                                 inclusive = true
                             }
                         }
                     }
+
                     is SignInViewModel.SignInNavigationEvent.NavigateToSignUp -> {
                         navController.navigate(SignUp)
                     }
+
                     else -> {
 
                     }
@@ -165,7 +167,7 @@ fun SignInScreen(navController: NavController,viewModel: SignInViewModel = hiltV
             )
 
             Spacer(modifier = Modifier.height(28.dp))
-            Text(text = errorMessage.value?: "", color =Color.Red)
+            Text(text = errorMessage.value ?: "", color = Color.Red)
 
             Button(
                 onClick = viewModel::onSignInClick,
@@ -177,20 +179,21 @@ fun SignInScreen(navController: NavController,viewModel: SignInViewModel = hiltV
                 )
             ) {
                 Box {
-                    AnimatedContent(targetState = loading.value,
+                    AnimatedContent(
+                        targetState = loading.value,
                         transitionSpec = {
-                            fadeIn(animationSpec = tween (300))+ scaleIn(initialScale = 0.8f) togetherWith
-                                    fadeOut(animationSpec = tween (300))+ scaleOut(targetScale = 0.8f)
+                            fadeIn(animationSpec = tween(300)) + scaleIn(initialScale = 0.8f) togetherWith
+                                    fadeOut(animationSpec = tween(300)) + scaleOut(targetScale = 0.8f)
                         }
-                        ) { target ->
-                        if(target){
+                    ) { target ->
+                        if (target) {
                             CircularProgressIndicator(
                                 color = Color.White,
                                 modifier = Modifier.padding(horizontal = 32.dp).size(24.dp)
                             )
-                        }else{
+                        } else {
                             Text(
-                                text= stringResource(R.string.sign_in),
+                                text = stringResource(R.string.sign_in),
                                 color = Color.White,
                                 modifier = Modifier.padding(horizontal = 32.dp)
                             )
@@ -203,42 +206,43 @@ fun SignInScreen(navController: NavController,viewModel: SignInViewModel = hiltV
             }
 
             Spacer(modifier = Modifier.height(20.dp))
+            if (isCustomer) {
+                Text(
+                    text = buildAnnotatedString {
+                        append("Don't have an account? ")
+                        withStyle(
+                            SpanStyle(
+                                color = Orange,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        ) {
+                            append("Sign Up")
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { viewModel.onSignUpClicked() }
+                        .padding(vertical = 8.dp),
+                    color = Color(0xFF5B5B5E),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.Center
+                )
 
-            Text(
-                text = buildAnnotatedString {
-                    append("Don't have an account? ")
-                    withStyle(
-                        SpanStyle(
-                            color = Orange,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    ) {
-                        append("Sign Up")
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { viewModel.onSignUpClicked() }
-                    .padding(vertical = 8.dp),
-                color = Color(0xFF5B5B5E),
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                textAlign = TextAlign.Center
-            )
+                // Push social controls toward the bottom on taller displays.
+                Spacer(
+                    modifier = Modifier
+                        .heightIn(min = 30.dp)
+                        .weight(1f, fill = false)
+                )
 
-            // Push social controls toward the bottom on taller displays.
-            Spacer(
-                modifier = Modifier
-                    .heightIn(min = 30.dp)
-                    .weight(1f, fill = false)
-            )
-
-            val context =LocalContext.current
-            GroupSocialButtons(
-                color = Color.Black,
-                viewModel
-            )
-            Spacer(modifier = Modifier.height(20.dp))
+                val context = LocalContext.current
+                GroupSocialButtons(
+                    color = Color.Black,
+                    viewModel
+                )
+                Spacer(modifier = Modifier.height(20.dp))
+            }
         }
     }
 }

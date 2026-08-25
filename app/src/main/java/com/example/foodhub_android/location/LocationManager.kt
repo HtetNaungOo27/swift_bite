@@ -21,4 +21,4 @@ class LocationManager @Inject constructor(
             val location = fusedLocationProviderClient.lastLocation.await()
             emit(location)
         }.flowOn(Dispatchers.IO)
-    }
+}

@@ -23,18 +23,17 @@
             android:value="AIzaSyDHygovQyzsfw8wQ5wBHOTn7NyZj8a_9aY" />
 
         <activity
-            android:name="com.codewithfk.foodhub.MainActivity"
+            android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/SplashTheme"
             android:windowSoftInputMode="adjustResize">
-
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
         </activity>
+
     </application>
 
 </manifest>

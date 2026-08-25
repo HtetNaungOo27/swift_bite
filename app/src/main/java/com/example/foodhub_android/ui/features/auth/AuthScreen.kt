@@ -46,7 +46,7 @@ import kotlinx.coroutines.flow.collectLatest
 
 @Composable
 
-fun AuthScreen(navController: NavController, viewModel: AuthScreenViewModel = hiltViewModel()){
+fun AuthScreen(navController: NavController,isCustomer: Boolean = true, viewModel: AuthScreenViewModel = hiltViewModel()){
     LaunchedEffect(viewModel) {
         viewModel.navigationEvent.collectLatest { event ->
             when (event) {
@@ -167,20 +167,23 @@ fun AuthScreen(navController: NavController, viewModel: AuthScreenViewModel = hi
 //                    }
 //                }
 //            }
-            GroupSocialButtons(viewModel = viewModel)
-            Spacer(modifier=Modifier.height(16.dp))
-            Button(onClick = {
-                navController.navigate(SignUp)
-            },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray.copy(0.2f)),
-                shape = RoundedCornerShape(32.dp),
-                border = BorderStroke(1.dp,Color.White)
-            ){
-                Text(
-                    text = stringResource(id = R.string.sign_with_email),
-                    color = Color.White
-                )
+            if(isCustomer) {
+                GroupSocialButtons(viewModel = viewModel)
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = {
+                        navController.navigate(SignUp)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Gray.copy(0.2f)),
+                    shape = RoundedCornerShape(32.dp),
+                    border = BorderStroke(1.dp, Color.White)
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.sign_with_email),
+                        color = Color.White
+                    )
+                }
             }
             TextButton(onClick = {
                 navController.navigate(Login)

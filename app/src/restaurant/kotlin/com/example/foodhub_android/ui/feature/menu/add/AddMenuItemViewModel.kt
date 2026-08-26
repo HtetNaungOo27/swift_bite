@@ -9,16 +9,13 @@ import com.example.foodhub_android.data.FoodHubSession
 import com.example.foodhub_android.data.models.FoodItem
 import com.example.foodhub_android.data.remote.ApiResponse
 import com.example.foodhub_android.data.remote.safeApiCall
-import dagger.hilt.android.internal.Contexts.getApplication
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
@@ -73,11 +70,17 @@ class AddMenuItemViewModel @Inject constructor(
     fun addMenuItem() {
         val name = name.value
         val description = description.value
-        val price = price.value.toDoubleOrNull() ?: 0.0
-        val restaurantId = session.getRestaurantId() ?: ""
+        val parsedPrice = price.value.toDoubleOrNull()
+        val restaurantId = session.getRestaurantId()
 
-        if (name.isEmpty() || description.isEmpty() || price == 0.0 || imageUrl.value == null) {
-            _addMenuItemEvent.tryEmit(AddMenuItemEvent.ShowErrorMessage("Please fill all fields"))
+        if (name.isBlank() || description.isBlank() || parsedPrice == null || parsedPrice <= 0.0 || imageUrl.value == null) {
+            viewModelScope.launch {
+                _addMenuItemEvent.emit(AddMenuItemEvent.ShowErrorMessage("Add an image and enter a valid name, description, and price"))
+            }
+            return
+        }
+        if (restaurantId.isNullOrBlank()) {
+            _addMenuItemState.value = AddMenuItemState.Error("Restaurant profile is not available yet")
             return
         }
         viewModelScope.launch {
@@ -91,9 +94,9 @@ class AddMenuItemViewModel @Inject constructor(
                 foodApi.addRestaurantMenu(
                     restaurantId,
                     FoodItem(
-                        name = name,
-                        description = description,
-                        price = price,
+                        name = name.trim(),
+                        description = description.trim(),
+                        price = parsedPrice,
                         imageUrl = imageUrl,
                         restaurantId = restaurantId
                     )
@@ -116,19 +119,18 @@ class AddMenuItemViewModel @Inject constructor(
         }
     }
 
-    suspend fun uploadImage(imageUri: Uri): String? {
+    private suspend fun uploadImage(imageUri: Uri): String? {
         val file = fileFromUri(imageUri)
-        val requestBody = file.asRequestBody("image/*".toMediaTypeOrNull())
-        val multipartBody = MultipartBody.Part.createFormData("image", file.name, requestBody)
-        val response = safeApiCall { foodApi.uploadImage(multipartBody) }
-        when (response) {
-            is ApiResponse.Success -> {
-                return response.data.url
+        return try {
+            val mimeType = context.contentResolver.getType(imageUri) ?: "image/jpeg"
+            val requestBody = file.asRequestBody(mimeType.toMediaTypeOrNull())
+            val multipartBody = MultipartBody.Part.createFormData("image", file.name, requestBody)
+            when (val response = safeApiCall { foodApi.uploadImage(multipartBody) }) {
+                is ApiResponse.Success -> response.data.url
+                else -> null
             }
-
-            else -> {
-                return null
-            }
+        } finally {
+            file.delete()
         }
     }
 
@@ -136,7 +138,7 @@ class AddMenuItemViewModel @Inject constructor(
         val inputStream = context.contentResolver.openInputStream(imageUri)
         val file = File.createTempFile(
             "temp-${System.currentTimeMillis()}-foodhub",
-            "jpg",
+            ".jpg",
             context.cacheDir
         )
         inputStream?.use { input ->

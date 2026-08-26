@@ -46,16 +46,16 @@ fun SharedTransitionScope.FoodItemView(
 ) {
     Column(
         modifier = Modifier
-            .padding(8.dp)
+            .padding(4.dp)
             .width(162.dp)
-            .height(216.dp)
+            .height(224.dp)
             .shadow(
-                elevation = 16.dp,
+                elevation = 4.dp,
                 shape = RoundedCornerShape(16.dp),
-                ambientColor = Color.Gray.copy(alpha = 0.8f),
-                spotColor = Color.Gray.copy(alpha = 0.8f)
+                ambientColor = Color.Gray.copy(alpha = 0.2f),
+                spotColor = Color.Gray.copy(alpha = 0.2f)
             )
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.surface)
             .clickable { onClick.invoke(footItem) }
             .clip(RoundedCornerShape(16.dp))
     ) {
@@ -81,45 +81,10 @@ fun SharedTransitionScope.FoodItemView(
                 modifier = Modifier
                     .padding(8.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(Color.White)
-                    .padding(horizontal = 16.dp)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(horizontal = 10.dp, vertical = 5.dp)
                     .align(Alignment.TopStart)
             )
-            Image(
-                painter = painterResource(id = R.drawable.favorite),
-                contentDescription = null,
-                modifier = Modifier
-                    .size(28.dp)
-                    .clip(CircleShape)
-                    .align(Alignment.TopEnd)
-            )
-
-
-            Row(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color.White)
-                    .padding(horizontal = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "4.5", style = MaterialTheme.typography.titleSmall, maxLines = 1
-                )
-                Spacer(modifier = Modifier.size(8.dp))
-                Icon(
-                    imageVector = Icons.Filled.Star,
-                    contentDescription = null,
-                    modifier = Modifier.size(14.dp)
-                )
-                Spacer(modifier = Modifier.size(8.dp))
-                Text(
-                    text = "(21)",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray,
-                    maxLines = 1
-                )
-            }
         }
 
         Column(
@@ -128,7 +93,7 @@ fun SharedTransitionScope.FoodItemView(
                 .fillMaxWidth()
         ) {
             Text(
-                text = footItem.name, style = MaterialTheme.typography.bodyMedium, maxLines = 1,
+                text = footItem.name, style = MaterialTheme.typography.titleMedium, maxLines = 1,
                 modifier = Modifier.sharedElement(
                     sharedContentState = rememberSharedContentState(key = "title/${footItem.id}"),
                     animatedVisibilityScope = animatedVisibilityScope
@@ -137,7 +102,7 @@ fun SharedTransitionScope.FoodItemView(
             Text(
                 text = "${footItem.description}",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1
             )
         }

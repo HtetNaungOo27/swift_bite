@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -25,6 +26,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -107,7 +109,7 @@ fun CartScreen(navController: NavController, viewModel: CartViewModel){
                         it.data.ephemeralKeySecret
                     )
                     val paymentSheetConfig = PaymentSheet.Configuration(
-                        merchantDisplayName = "FoodHub",
+                        merchantDisplayName = "SwiftBite",
                         customer = customer,
                         allowsDelayedPaymentMethods = false,
                     )
@@ -176,7 +178,7 @@ fun CartScreen(navController: NavController, viewModel: CartViewModel){
                         tint = Color.Gray
                     )
                     Text(
-                        text = "No orderItems in cart",
+                        text = "Your cart is looking a bit hungry. Let’s fix that!",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.Gray
                     )
@@ -210,11 +212,17 @@ fun CartScreen(navController: NavController, viewModel: CartViewModel){
 
                 Button(
                     onClick = {viewModel.checkout()},
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp),
                     enabled = selectedAddress.value != null)
                 {
-                    Text(text = "Checkout")
-                }          }
+                    Text(text = "Pay securely by card")
+                }
+                OutlinedButton(
+                    onClick = viewModel::checkoutWithCash,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp),
+                    enabled = selectedAddress.value != null
+                ) { Text("Cash on delivery") }
+            }
         }
     if (showErrorDialog.value) {
         AlertDialog(
@@ -245,7 +253,7 @@ fun AddressCard(address: Address?, onAddressClicked: () -> Unit ) {
             .clip(
                 RoundedCornerShape(8.dp)
             )
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.surface)
             .clickable{ onAddressClicked.invoke() }
             .padding(16.dp)
 
@@ -257,8 +265,10 @@ fun AddressCard(address: Address?, onAddressClicked: () -> Unit ) {
             Text(
                 text = "${address.city}, ${address.state}, ${address.country}",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            address.landmark?.takeIf { it.isNotBlank() }?.let { Text("Near $it", style = MaterialTheme.typography.bodySmall) }
+            address.plusCode?.takeIf { it.isNotBlank() }?.let { Text("Plus code: $it", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }
         }
     }else{
         Text(text = "Select Address", style = MaterialTheme.typography.bodyMedium)

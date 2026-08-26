@@ -16,11 +16,19 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Visibility
+import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -29,6 +37,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
@@ -60,6 +69,7 @@ fun SignUpScreen(navController: NavController,viewModel: SignUpViewModel= hiltVi
         val password = viewModel.password.collectAsStateWithLifecycle()
         val errorMessage = remember { mutableStateOf<String?>(null) }
         val loading = remember { mutableStateOf(false) }
+        var passwordVisible by rememberSaveable { mutableStateOf(false) }
 
         val uiState = viewModel.uiState.collectAsState()
         when(uiState.value){
@@ -106,7 +116,8 @@ fun SignUpScreen(navController: NavController,viewModel: SignUpViewModel= hiltVi
             painter = painterResource(R.drawable.ic_auth_bg),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.FillBounds
+            contentScale = ContentScale.FillBounds,
+            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
         )
 
         Column(
@@ -123,8 +134,8 @@ fun SignUpScreen(navController: NavController,viewModel: SignUpViewModel= hiltVi
             Text(
                 text = stringResource(R.string.sign_up),
                 modifier = Modifier.fillMaxWidth(),
-                color = Color.Black,
-                fontSize = 36.sp,
+                color = MaterialTheme.colorScheme.onBackground,
+                fontSize = 30.sp,
                 fontWeight = FontWeight.Bold
             )
 
@@ -168,18 +179,19 @@ fun SignUpScreen(navController: NavController,viewModel: SignUpViewModel= hiltVi
                     )
                 },
                 modifier = Modifier.fillMaxWidth(),
-                visualTransformation = PasswordVisualTransformation(),
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
-                    Image(
-                        painter = painterResource(R.drawable.ic_eye),
-                        contentDescription = "Show password",
-                        modifier = Modifier.size(24.dp)
-                    )
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(
+                            imageVector = if (passwordVisible) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
+                            contentDescription = if (passwordVisible) "Hide password" else "Show password"
+                        )
+                    }
                 }
             )
 
             Spacer(modifier = Modifier.height(28.dp))
-            Text(text = errorMessage.value?: "", color =Color.Red)
+            Text(text = errorMessage.value?: "", color = MaterialTheme.colorScheme.error)
 
             Button(
                 onClick = viewModel::onSignUpClick,
@@ -248,7 +260,7 @@ fun SignUpScreen(navController: NavController,viewModel: SignUpViewModel= hiltVi
             )
 
             GroupSocialButtons(
-                color = Color.Black,
+                color = MaterialTheme.colorScheme.onBackground,
                 viewModel
             )
 

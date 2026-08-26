@@ -31,6 +31,9 @@ object Cart: NavRoute
 object Notification: NavRoute
 
 @Serializable
+object Profile: NavRoute
+
+@Serializable
 object AddressList: NavRoute
 
 @Serializable
@@ -53,3 +56,15 @@ object AddMenu : NavRoute
 
 @Serializable
 object ImagePicker : NavRoute
+
+@Serializable
+object RiderDeliveries : NavRoute
+
+@Serializable
+object RiderActiveOrders : NavRoute
+
+@Serializable
+object RiderWallet : NavRoute
+
+@Serializable
+data class RiderOrderDetails(val orderID: String) : NavRoute

@@ -26,6 +26,10 @@ class FoodHubSession(context: Context) {
 
     fun getRestaurantId(): String? = preferences.getString("restaurantId", null)
 
+    fun clear() {
+        preferences.edit().clear().apply()
+    }
+
     private fun isExpired(token: String): Boolean = try {
         val payload = token.split('.')[1]
         val json = String(Base64.decode(payload, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING))

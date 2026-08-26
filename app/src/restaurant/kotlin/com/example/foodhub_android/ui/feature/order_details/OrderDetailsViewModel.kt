@@ -26,6 +26,8 @@ class OrderDetailsViewModel @Inject constructor(val foodApi: FoodApi) : ViewMode
 
     private val _event = MutableSharedFlow<OrderDetailsEvent?>()
     val event = _event.asSharedFlow()
+    private val _updating = MutableStateFlow(false)
+    val updating = _updating.asStateFlow()
     var order: Order? = null
 
     fun getOrderDetails(orderID: String) {
@@ -51,6 +53,7 @@ class OrderDetailsViewModel @Inject constructor(val foodApi: FoodApi) : ViewMode
 
     fun updateOrderStatus(orderID: String, status: String) {
         viewModelScope.launch {
+            _updating.value = true
             val result =
                 safeApiCall { foodApi.updateOrderStatus(orderID, mapOf("status" to status)) }
             when (result) {
@@ -63,7 +66,15 @@ class OrderDetailsViewModel @Inject constructor(val foodApi: FoodApi) : ViewMode
                     _event.emit(OrderDetailsEvent.ShowPopUp("Order Status update failed"))
                 }
             }
+            _updating.value = false
         }
+    }
+
+    fun nextStatuses(current: String): List<String> = when (current.uppercase()) {
+        OrdersUtils.OrderStatus.PENDING_ACCEPTANCE.name -> listOf(OrdersUtils.OrderStatus.ACCEPTED.name)
+        OrdersUtils.OrderStatus.ACCEPTED.name -> listOf(OrdersUtils.OrderStatus.PREPARING.name)
+        OrdersUtils.OrderStatus.PREPARING.name -> listOf(OrdersUtils.OrderStatus.READY.name)
+        else -> emptyList()
     }
 
     sealed class OrderDetailsUiState {

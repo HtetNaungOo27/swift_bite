@@ -1,6 +1,5 @@
 package com.example.foodhub_android.ui.features.orders
 
-import android.os.Message
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.foodhub_android.data.FoodApi
@@ -11,6 +10,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -18,7 +18,7 @@ import javax.inject.Inject
 class OrderListViewModel @Inject constructor(private val foodApi: FoodApi) : ViewModel(){
 
     private val _state = MutableStateFlow<OrderListState>(OrderListState.Loading)
-    val state get() = _state.asSharedFlow()
+    val state get() = _state.asStateFlow()
 
     private val _event = MutableSharedFlow<OrderListEvent>()
     val event get() = _event.asSharedFlow()

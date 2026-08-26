@@ -13,6 +13,7 @@ import com.example.foodhub_android.data.models.FooditemResponse
 import com.example.foodhub_android.data.models.GenericMsgResponse
 import com.example.foodhub_android.data.models.FoodItem
 import com.example.foodhub_android.data.models.FoodItemListResponse
+import com.example.foodhub_android.data.models.FCMRequest
 import com.example.foodhub_android.data.models.ImageUploadResponse
 import com.example.foodhub_android.data.models.NotificationListResponse
 import com.example.foodhub_android.data.models.OAuthRequest
@@ -25,6 +26,16 @@ import com.example.foodhub_android.data.models.ReverseGeocodeRequest
 import com.example.foodhub_android.data.models.SignInRequest
 import com.example.foodhub_android.data.models.SignUpRequest
 import com.example.foodhub_android.data.models.UpdateCartItemRequest
+import com.example.foodhub_android.data.models.AvailableDeliveriesResponse
+import com.example.foodhub_android.data.models.RiderDeliveriesResponse
+import com.example.foodhub_android.data.models.DeliveryStatusUpdate
+import com.example.foodhub_android.data.models.ReviewRequest
+import com.example.foodhub_android.data.models.ReviewSummary
+import com.example.foodhub_android.data.models.RestaurantStatistics
+import com.example.foodhub_android.data.models.CustomerProfile
+import com.example.foodhub_android.data.models.PlaceOrderRequest
+import com.example.foodhub_android.data.models.PlaceOrderResponse
+import com.example.foodhub_android.data.models.RiderWallet
 import retrofit2.Response
 import okhttp3.MultipartBody
 import retrofit2.http.Body
@@ -34,10 +45,26 @@ import retrofit2.http.PATCH
 import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
+import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface FoodApi {
+
+    @POST("/orders")
+    suspend fun placeOrder(@Body request: PlaceOrderRequest): Response<PlaceOrderResponse>
+
+    @GET("/customer/profile")
+    suspend fun getCustomerProfile(): Response<CustomerProfile>
+
+    @GET("/restaurants/{id}/reviews")
+    suspend fun getRestaurantReviews(@Path("id") restaurantId: String): Response<ReviewSummary>
+
+    @POST("/restaurants/{id}/reviews")
+    suspend fun saveRestaurantReview(
+        @Path("id") restaurantId: String,
+        @Body request: ReviewRequest
+    ): Response<ReviewSummary>
 
     @GET("/categories")
     suspend fun getCategories(): Response<CategoriesResponse>
@@ -100,13 +127,19 @@ interface FoodApi {
     @GET("/notifications")
     suspend fun getNotifications(): Response<NotificationListResponse>
 
+    @PUT("/notifications/fcm-token")
+    suspend fun updateToken(@Body request: FCMRequest): Response<GenericMsgResponse>
+
     @GET("/restaurant-owner/profile")
     suspend fun getRestaurantProfile(): Response<com.example.foodhub_android.data.models.Restaurant>
+
+    @GET("/restaurant-owner/statistics")
+    suspend fun getRestaurantStatistics(): Response<RestaurantStatistics>
 
     @GET("/restaurant-owner/orders")
     suspend fun getRestaurantOrders(@Query("status") status: String): Response<OrderListResponse>
 
-    @PATCH("/orders/{orderId}/status")
+    @PATCH("/restaurant-owner/orders/{orderId}/status")
     suspend fun updateOrderStatus(
         @Path("orderId") orderId: String,
         @Body status: Map<String, String>
@@ -121,8 +154,38 @@ interface FoodApi {
         @Body foodItem: FoodItem
     ): Response<GenericMsgResponse>
 
+    @PATCH("/restaurant-owner/menu/{itemId}")
+    suspend fun updateRestaurantMenuItem(
+        @Path("itemId") itemId: String,
+        @Body request: com.example.foodhub_android.data.models.UpdateMenuItemRequest
+    ): Response<GenericMsgResponse>
+
     @Multipart
     @POST("/images/upload")
     suspend fun uploadImage(@Part image: MultipartBody.Part): Response<ImageUploadResponse>
+
+    @GET("/rider/deliveries/available")
+    suspend fun getAvailableDeliveries(): Response<AvailableDeliveriesResponse>
+
+    @GET("/rider/deliveries/active")
+    suspend fun getActiveDeliveries(): Response<RiderDeliveriesResponse>
+
+    @POST("/rider/deliveries/{orderId}/accept")
+    suspend fun acceptDelivery(@Path("orderId") orderId: String): Response<GenericMsgResponse>
+
+    @POST("/rider/deliveries/{orderId}/reject")
+    suspend fun rejectDelivery(@Path("orderId") orderId: String): Response<GenericMsgResponse>
+
+    @POST("/rider/deliveries/{orderId}/status")
+    suspend fun updateDeliveryStatus(
+        @Path("orderId") orderId: String,
+        @Body request: DeliveryStatusUpdate
+    ): Response<GenericMsgResponse>
+
+    @GET("/rider/wallet")
+    suspend fun getRiderWallet(): Response<RiderWallet>
+
+    @POST("/rider/wallet/settle")
+    suspend fun settleRiderWallet(): Response<GenericMsgResponse>
 
 }

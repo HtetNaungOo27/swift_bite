@@ -35,9 +35,9 @@ suspend fun <T> safeApiCall(
             val serverMessage = response.errorBody()?.string()?.takeIf { it.isNotBlank() }
             ApiResponse.Error(
                 code = response.code(),
-                message = serverMessage ?: when (response.code()) {
+                message = when (response.code()) {
                     401 -> "Your session has expired. Please sign in again."
-                    else -> "Request failed (${response.code()})"
+                    else -> serverMessage ?: "Request failed (${response.code()})"
                 }
             )
         }

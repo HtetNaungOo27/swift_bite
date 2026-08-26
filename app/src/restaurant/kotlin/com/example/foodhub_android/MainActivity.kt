@@ -77,7 +77,7 @@ import com.example.foodhub_android.ui.navigation.OrderDetails
 import com.example.foodhub_android.ui.navigation.OrderList
 import com.example.foodhub_android.ui.navigation.OrderSuccess
 import com.example.foodhub_android.ui.navigation.SignUp
-import com.example.foodhub_android.ui.theme.FoodHubAndroidTheme
+import com.example.foodhub_android.ui.theme.RestaurantTheme
 import com.example.foodhub_android.ui.theme.Mustard
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -123,36 +123,13 @@ class MainActivity : BaseFoodHubActivity() {
                 showSplashScreen
             }
             setOnExitAnimationListener { screen ->
-                val zoomX = ObjectAnimator.ofFloat(
-                    screen.iconView,
-                    View.SCALE_X,
-                    0.5f,
-                    0f
-                )
-                val zoomY = ObjectAnimator.ofFloat(
-                    screen.iconView,
-                    View.SCALE_Y,
-                    0.5f,
-                    0f
-                )
-                zoomX.duration = 500
-                zoomY.duration = 500
-                zoomX.interpolator = OvershootInterpolator()
-                zoomY.interpolator = OvershootInterpolator()
-                zoomX.doOnEnd {
-                    screen.remove()
-                }
-                zoomY.doOnEnd {
-                    screen.remove()
-                }
-                zoomY.start()
-                zoomX.start()
+                screen.remove()
             }
         }
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            FoodHubAndroidTheme {
+            RestaurantTheme {
 
                 val shouldShowBottomNav = remember {
                     mutableStateOf(false)
@@ -183,7 +160,8 @@ class MainActivity : BaseFoodHubActivity() {
                             navController.currentBackStackEntryAsState().value?.destination
                         AnimatedVisibility(visible = shouldShowBottomNav.value) {
                             NavigationBar(
-                                containerColor = Color.White
+                                containerColor = MaterialTheme.colorScheme.surface,
+                                tonalElevation = 10.dp
                             ) {
                                 navItems.forEach { item ->
                                     val selected =
@@ -207,7 +185,9 @@ class MainActivity : BaseFoodHubActivity() {
                                                     ItemCount(unreadCount.value)
                                                 }
                                             }
-                                        })
+                                        },
+                                        label = { Text(item::class.simpleName?.removeSuffix("Item") ?: "") }
+                                    )
                                 }
                             }
                         }
@@ -310,7 +290,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 @Preview(showBackground = true)
 @Composable
 fun GreetingPreview() {
-    FoodHubAndroidTheme {
+    RestaurantTheme {
         Greeting("Android")
     }
 }

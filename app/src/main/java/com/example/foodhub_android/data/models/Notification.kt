@@ -5,7 +5,7 @@ data class Notification(
     val id: String,
     val isRead: Boolean,
     val message: String,
-    val orderId: String,
+    val orderId: String?,
     val title: String,
     val type: String,
     val userId: String

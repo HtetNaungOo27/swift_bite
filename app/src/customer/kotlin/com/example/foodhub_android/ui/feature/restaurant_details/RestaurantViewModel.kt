@@ -3,7 +3,10 @@ package com.example.foodhub_android.ui.feature.restaurant_details
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.foodhub_android.data.FoodApi
+import com.example.foodhub_android.data.FavoritesStore
 import com.example.foodhub_android.data.models.FoodItem
+import com.example.foodhub_android.data.models.ReviewRequest
+import com.example.foodhub_android.data.models.ReviewSummary
 import com.example.foodhub_android.data.remote.ApiResponse
 import com.example.foodhub_android.data.remote.safeApiCall
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,7 +18,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 @HiltViewModel
-class RestaurantViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel() {
+class RestaurantViewModel @Inject constructor(
+    val foodApi: FoodApi,
+    private val favoritesStore: FavoritesStore
+) : ViewModel() {
     var errorMsg =""
     var errorDescription = ""
     private val _uiState = MutableStateFlow<RestaurantEvent>(RestaurantEvent.Nothing)
@@ -23,6 +29,39 @@ class RestaurantViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel(
 
     private val _navigationEvent = MutableSharedFlow<RestaurantNavigationEvent>()
     val navigationEvent = _navigationEvent.asSharedFlow()
+    private val _isFavorite = MutableStateFlow(false)
+    val isFavorite = _isFavorite.asStateFlow()
+    private val _reviews = MutableStateFlow(ReviewSummary())
+    val reviews = _reviews.asStateFlow()
+    private val _reviewSaving = MutableStateFlow(false)
+    val reviewSaving = _reviewSaving.asStateFlow()
+
+    fun loadFavorite(restaurantId: String) {
+        _isFavorite.value = favoritesStore.contains("restaurant:$restaurantId")
+    }
+
+    fun toggleFavorite(restaurantId: String) {
+        _isFavorite.value = favoritesStore.toggle("restaurant:$restaurantId")
+    }
+
+    fun getReviews(restaurantId: String) = viewModelScope.launch {
+        val response = safeApiCall { foodApi.getRestaurantReviews(restaurantId) }
+        if (response is ApiResponse.Success) _reviews.value = response.data
+    }
+
+    fun saveReview(restaurantId: String, rating: Int, comment: String) = viewModelScope.launch {
+        if (rating !in 1..5 || comment.isBlank()) return@launch
+        _reviewSaving.value = true
+        val response = safeApiCall {
+            foodApi.saveRestaurantReview(restaurantId, ReviewRequest(rating, comment.trim()))
+        }
+        if (response is ApiResponse.Success) {
+            _reviews.value = response.data
+        } else {
+            _navigationEvent.emit(RestaurantNavigationEvent.ShowErrorDialog)
+        }
+        _reviewSaving.value = false
+    }
 
     fun getFoodItem(id: String) {
         viewModelScope.launch {

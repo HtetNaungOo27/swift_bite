@@ -15,11 +15,19 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Visibility
+import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -28,6 +36,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
@@ -37,7 +46,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.foodhub_android.R
 import com.example.foodhub_android.ui.FoodHubTextField
 import com.example.foodhub_android.ui.GroupSocialButtons
-import com.example.foodhub_android.ui.theme.Orange
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
@@ -60,6 +68,7 @@ fun SignInScreen(navController: NavController,isCustomer: Boolean = true,viewMod
         val password = viewModel.password.collectAsStateWithLifecycle()
         val errorMessage = remember { mutableStateOf<String?>(null) }
         val loading = remember { mutableStateOf(false) }
+        var passwordVisible by rememberSaveable { mutableStateOf(false) }
 
         val uiState = viewModel.uiState.collectAsState()
         when (uiState.value) {
@@ -82,6 +91,11 @@ fun SignInScreen(navController: NavController,isCustomer: Boolean = true,viewMod
         }
 
         val context = LocalContext.current
+        val roleLabel = when {
+            context.packageName.endsWith(".restaurant") -> "RESTAURANT PORTAL"
+            context.packageName.endsWith(".rider") -> "RIDER PORTAL"
+            else -> "CUSTOMER APP"
+        }
         LaunchedEffect(true) {
             viewModel.navigationEvent.collectLatest { event ->
                 when (event) {
@@ -108,7 +122,8 @@ fun SignInScreen(navController: NavController,isCustomer: Boolean = true,viewMod
             painter = painterResource(R.drawable.ic_auth_bg),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.FillBounds
+            contentScale = ContentScale.FillBounds,
+            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
         )
 
         Column(
@@ -125,9 +140,15 @@ fun SignInScreen(navController: NavController,isCustomer: Boolean = true,viewMod
             Text(
                 text = stringResource(R.string.sign_in),
                 modifier = Modifier.fillMaxWidth(),
-                color = Color.Black,
-                fontSize = 36.sp,
+                color = MaterialTheme.colorScheme.onBackground,
+                fontSize = 30.sp,
                 fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = roleLabel,
+                modifier = Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -156,18 +177,20 @@ fun SignInScreen(navController: NavController,isCustomer: Boolean = true,viewMod
                     )
                 },
                 modifier = Modifier.fillMaxWidth(),
-                visualTransformation = PasswordVisualTransformation(),
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
-                    Image(
-                        painter = painterResource(R.drawable.ic_eye),
-                        contentDescription = "Show password",
-                        modifier = Modifier.size(24.dp)
-                    )
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(
+                            imageVector = if (passwordVisible) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
+                            contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             )
 
             Spacer(modifier = Modifier.height(28.dp))
-            Text(text = errorMessage.value ?: "", color = Color.Red)
+            Text(text = errorMessage.value ?: "", color = MaterialTheme.colorScheme.error)
 
             Button(
                 onClick = viewModel::onSignInClick,
@@ -175,7 +198,7 @@ fun SignInScreen(navController: NavController,isCustomer: Boolean = true,viewMod
                     .height(48.dp),
 //                shape = androidx.compose.foundation.shape.RoundedCornerShape(30.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Orange
+                    containerColor = MaterialTheme.colorScheme.primary
                 )
             ) {
                 Box {
@@ -212,7 +235,7 @@ fun SignInScreen(navController: NavController,isCustomer: Boolean = true,viewMod
                         append("Don't have an account? ")
                         withStyle(
                             SpanStyle(
-                                color = Orange,
+                                color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.SemiBold
                             )
                         ) {
@@ -238,7 +261,7 @@ fun SignInScreen(navController: NavController,isCustomer: Boolean = true,viewMod
 
                 val context = LocalContext.current
                 GroupSocialButtons(
-                    color = Color.Black,
+                    color = MaterialTheme.colorScheme.onBackground,
                     viewModel
                 )
                 Spacer(modifier = Modifier.height(20.dp))

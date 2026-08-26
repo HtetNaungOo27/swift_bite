@@ -3,6 +3,7 @@ package com.example.foodhub_android.ui.features.notifications
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.foodhub_android.data.FoodApi
+import com.example.foodhub_android.data.FoodHubSession
 import com.example.foodhub_android.data.models.Notification
 import com.example.foodhub_android.data.remote.ApiResponse
 import com.example.foodhub_android.data.remote.safeApiCall
@@ -15,7 +16,10 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class NotificationsViewModel @Inject constructor(private val foodApi: FoodApi) : ViewModel() {
+class NotificationsViewModel @Inject constructor(
+    private val foodApi: FoodApi,
+    private val session: FoodHubSession
+) : ViewModel() {
 
     private val _state = MutableStateFlow<NotificationsState>(NotificationsState.Loading)
     val state = _state.asStateFlow()
@@ -38,7 +42,7 @@ class NotificationsViewModel @Inject constructor(private val foodApi: FoodApi) :
 
     fun readNotification(notification: Notification) {
         viewModelScope.launch {
-            navigateToOrderDetail(notification.orderId)
+            notification.orderId?.let { navigateToOrderDetail(it) }
             val response = safeApiCall { foodApi.readNotification(notification.id) }
             if (response is ApiResponse.Success) {
                 getNotifications()
@@ -46,14 +50,19 @@ class NotificationsViewModel @Inject constructor(private val foodApi: FoodApi) :
         }
     }
 
+    fun clearExpiredSession() = session.clear()
+
     fun getNotifications() {
         viewModelScope.launch {
+            _state.value = NotificationsState.Loading
             val response = safeApiCall { foodApi.getNotifications() }
             if (response is ApiResponse.Success) {
                 _unreadCount.value = response.data.unreadCount
                 _state.value = NotificationsState.Success(response.data.notifications)
+            } else if (response is ApiResponse.Error) {
+                _state.value = NotificationsState.Error(response.message ?: "Unable to load notifications")
             } else {
-                _state.value = NotificationsState.Error("Failed to get notifications")
+                _state.value = NotificationsState.Error("We couldn’t connect. Check your internet and try again.")
             }
         }
     }

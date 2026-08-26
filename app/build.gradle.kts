@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.google.services)
     id("kotlin-parcelize")
 }
 
@@ -22,6 +23,10 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
+        manifestPlaceholders["MAPS_API_KEY"] = providers.gradleProperty("MAPS_API_KEY")
+            .orElse(providers.environmentVariable("MAPS_API_KEY"))
+            .orElse("")
+            .get()
 
         testInstrumentationRunner =
             "androidx.test.runner.AndroidJUnitRunner"
@@ -58,7 +63,7 @@ android {
             resValue(
                 type = "string",
                 name = "app_name",
-                value = "FH Restaurant"
+                value = "SwiftBite Restaurant"
             )
         }
 
@@ -68,7 +73,7 @@ android {
             resValue(
                 type = "string",
                 name = "app_name",
-                value = "FH Rider"
+                value = "SwiftBite Rider"
             )
         }
     }
@@ -116,21 +121,15 @@ dependencies {
 
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
-
-    implementation(
-        libs.kotlinx.coroutines.play.services
-    )
-    implementation(
-        libs.play.services.location
-    )
-
     implementation(libs.maps.compose)
     implementation(libs.play.services.maps)
-    implementation(libs.play.services.base)
+    implementation(libs.play.services.location)
 
     implementation(
         libs.stripe.android
     )
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
 
     testImplementation(libs.junit)
 

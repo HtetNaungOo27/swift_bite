@@ -1,9 +1,9 @@
 <resources>
-    <string name="app_name">FoodHub-Android</string>
+    <string name="app_name">SwiftBite</string>
     <string name="skip">Skip</string>
     <string name="welcome">Welcome To</string>
     <string name="swift_bite">SwiftBite</string>
-    <string name="food_hub_desc">Your favourite foods delivered fast at your door.</string>
+    <string name="food_hub_desc">Your favorite local food, delivered simply.</string>
     <string name="already_have_an_account">Already have an account? Login</string>
     <string name="sign_with_email">Start with email or phone</string>
     <string name="sign_with_facebook">FACEBOOK</string>

@@ -10,6 +10,7 @@ import com.example.foodhub_android.data.models.ConfirmPaymentRequest
 import com.example.foodhub_android.data.models.PaymentIntentRequest
 import com.example.foodhub_android.data.models.PaymentIntentResponse
 import com.example.foodhub_android.data.models.UpdateCartItemRequest
+import com.example.foodhub_android.data.models.PlaceOrderRequest
 import com.example.foodhub_android.data.remote.ApiResponse
 import com.example.foodhub_android.data.remote.safeApiCall
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -146,6 +147,25 @@ class CartViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel() {
                     _uiState.value = CartUiState.Success(cartResponse!!)
                 }
 
+            }
+        }
+    }
+
+    fun checkoutWithCash() {
+        val selected = address.value ?: return
+        viewModelScope.launch {
+            _uiState.value = CartUiState.Loading
+            when (val response = safeApiCall { foodApi.placeOrder(PlaceOrderRequest(selected.id!!, "COD")) }) {
+                is ApiResponse.Success -> {
+                    _event.emit(CartEvent.OrderSuccess(response.data.id))
+                    getCart()
+                }
+                else -> {
+                    errorTitle = "Couldn’t place COD order"
+                    errorMessage = "Please try again. No payment was taken."
+                    _event.emit(CartEvent.showErrorDialog)
+                    _uiState.value = cartResponse?.let { CartUiState.Success(it) } ?: CartUiState.Error(errorMessage)
+                }
             }
         }
     }

@@ -3,6 +3,7 @@ package com.example.foodhub_android.ui.feature.food_item_details
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.foodhub_android.data.FoodApi
+import com.example.foodhub_android.data.FavoritesStore
 import com.example.foodhub_android.data.models.AddToCartRequest
 import com.example.foodhub_android.data.remote.ApiResponse
 import com.example.foodhub_android.data.remote.safeApiCall
@@ -16,7 +17,10 @@ import javax.inject.Inject
 
 
 @HiltViewModel
-class FoodDetailsViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel(){
+class FoodDetailsViewModel @Inject constructor(
+    val foodApi: FoodApi,
+    private val favoritesStore: FavoritesStore
+) : ViewModel(){
 
     private val _uiState = MutableStateFlow<FoodDetailsUiState>(FoodDetailsUiState.Nothing)
     val uiState = _uiState.asStateFlow()
@@ -26,6 +30,16 @@ class FoodDetailsViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel
 
     private val _quantity = MutableStateFlow(1)
     val quantity =_quantity.asStateFlow()
+    private val _isFavorite = MutableStateFlow(false)
+    val isFavorite = _isFavorite.asStateFlow()
+
+    fun loadFavorite(foodItemId: String) {
+        _isFavorite.value = favoritesStore.contains("food:$foodItemId")
+    }
+
+    fun toggleFavorite(foodItemId: String) {
+        _isFavorite.value = favoritesStore.toggle("food:$foodItemId")
+    }
 
     fun incrementQuantity() {
         if(quantity.value == 5) {

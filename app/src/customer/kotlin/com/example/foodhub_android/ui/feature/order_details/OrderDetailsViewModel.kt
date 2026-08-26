@@ -1,6 +1,5 @@
 package com.example.foodhub_android.ui.feature.order_details
 
-import android.os.Message
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.foodhub_android.R
@@ -17,7 +16,9 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class OrderDetailsViewModel @Inject constructor(private val foodApi: FoodApi) : ViewModel(){
+class OrderDetailsViewModel @Inject constructor(
+    private val foodApi: FoodApi
+) : ViewModel(){
 
     private val _state = MutableStateFlow<OrderDetailsState>(OrderDetailsState.Loading)
     val state get() = _state.asStateFlow()

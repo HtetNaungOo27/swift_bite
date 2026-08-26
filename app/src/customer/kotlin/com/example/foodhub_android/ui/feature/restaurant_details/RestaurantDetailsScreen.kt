@@ -38,18 +38,30 @@ import coil3.compose.AsyncImage
 import com.example.foodhub_android.R
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.collectAsState
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.draw.shadow
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import com.example.foodhub_android.data.models.FoodItem
+import com.example.foodhub_android.data.models.ReviewSummary
 import com.example.foodhub_android.ui.navigation.FoodDetails
 
 
@@ -64,15 +76,22 @@ fun SharedTransitionScope.RestaurantDetailScreen(
 ) {
     LaunchedEffect(restaurantID) {
         viewModel.getFoodItem((restaurantID))
+        viewModel.loadFavorite(restaurantID)
+        viewModel.getReviews(restaurantID)
     }
     val uiState = viewModel.uiState.collectAsState()
+    val isFavorite = viewModel.isFavorite.collectAsState()
+    val reviews = viewModel.reviews.collectAsState()
+    val savingReview = viewModel.reviewSaving.collectAsState()
+    var showReviews by remember { mutableStateOf(false) }
     LazyVerticalGrid(GridCells.Fixed(2), modifier = Modifier.fillMaxSize()) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             RestaurantDetailHeader(
                 imageUrl = imageUrl,
                 restaurantID = restaurantID,
                 onBackButton = { navController.popBackStack() },
-                onFavoriteButton = {},
+                onFavoriteButton = { viewModel.toggleFavorite(restaurantID) },
+                isFavorite = isFavorite.value,
             )
         }
         item(span = { GridItemSpan(maxLineSpan) }) {
@@ -80,6 +99,8 @@ fun SharedTransitionScope.RestaurantDetailScreen(
                 title = name,
                 description = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed ut purus eget sapien fermentum aliquam. Nam sollicitudin interdum risus.",
                 restaurantID = restaurantID,
+                reviewSummary = reviews.value,
+                onViewReviews = { showReviews = true },
                 )
         }
         when(uiState.value){
@@ -126,10 +147,24 @@ fun SharedTransitionScope.RestaurantDetailScreen(
             RestaurantViewModel.RestaurantEvent.Nothing -> {}
         }
     }
+    if (showReviews) {
+        ReviewSheet(
+            summary = reviews.value,
+            saving = savingReview.value,
+            onDismiss = { showReviews = false },
+            onSubmit = { rating, comment -> viewModel.saveReview(restaurantID, rating, comment) }
+        )
+    }
 }
 
 @Composable
-fun RestaurantDetails(title: String, description: String, restaurantID: String) {
+fun RestaurantDetails(
+    title: String,
+    description: String,
+    restaurantID: String,
+    reviewSummary: ReviewSummary? = null,
+    onViewReviews: () -> Unit = {}
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -146,23 +181,19 @@ fun RestaurantDetails(title: String, description: String, restaurantID: String) 
             )
             Spacer(modifier = Modifier.size(8.dp))
             Text(
-                text = "4.5",
+                text = reviewSummary?.let { "%.1f".format(it.averageRating) } ?: "New",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.align(Alignment.CenterVertically)
             )
             Spacer(modifier = Modifier.size(8.dp))
             Text(
-                text = "(30+)",
+                text = reviewSummary?.let { "(${it.reviewCount})" } ?: "",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.align(Alignment.CenterVertically)
             )
-            Spacer(modifier = Modifier.size(8.dp))
-            TextButton(onClick = {/*TODO*/ }) {
-                Text(
-                    text = "View All Reviews",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
+            if (reviewSummary != null) {
+                Spacer(modifier = Modifier.size(8.dp))
+                TextButton(onClick = onViewReviews) { Text("View Reviews") }
             }
         }
         Spacer(modifier = Modifier.size(8.dp))
@@ -174,13 +205,72 @@ fun RestaurantDetails(title: String, description: String, restaurantID: String) 
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReviewSheet(
+    summary: ReviewSummary,
+    saving: Boolean,
+    onDismiss: () -> Unit,
+    onSubmit: (Int, String) -> Unit
+) {
+    var rating by remember { mutableIntStateOf(5) }
+    var comment by remember { mutableStateOf("") }
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(1),
+            modifier = Modifier.fillMaxWidth().height(520.dp).padding(horizontal = 20.dp)
+        ) {
+            item {
+                Column {
+                    Text("Restaurant Reviews", style = MaterialTheme.typography.headlineSmall)
+                    Text("${"%.1f".format(summary.averageRating)} from ${summary.reviewCount} reviews")
+                    Row {
+                        (1..5).forEach { value ->
+                            IconButton(onClick = { rating = value }) {
+                                Icon(
+                                    Icons.Filled.Star,
+                                    contentDescription = "$value stars",
+                                    tint = if (value <= rating) Color(0xFFFFB300) else Color.LightGray
+                                )
+                            }
+                        }
+                    }
+                    OutlinedTextField(
+                        value = comment,
+                        onValueChange = { comment = it },
+                        label = { Text("Your review") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Button(
+                        onClick = { onSubmit(rating, comment); comment = "" },
+                        enabled = !saving && comment.isNotBlank(),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                    ) { Text(if (saving) "Saving…" else "Submit Review") }
+                }
+            }
+            if (summary.reviews.isEmpty()) {
+                item { Text("No reviews yet. Be the first to review this restaurant.") }
+            } else {
+                items(summary.reviews, key = { it.id }) { review ->
+                    Column(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
+                        Text(review.userName, style = MaterialTheme.typography.titleMedium)
+                        Text("★".repeat(review.rating), color = Color(0xFFFFB300))
+                        Text(review.comment)
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun RestaurantDetailHeader(
 
     imageUrl: String,
     onBackButton: () -> Unit,
     onFavoriteButton: () -> Unit,
-    restaurantID: String
+    restaurantID: String,
+    isFavorite: Boolean = false
 ) {
     Box(modifier = Modifier.fillMaxWidth()) {
         AsyncImage(
@@ -207,7 +297,14 @@ fun RestaurantDetailHeader(
                 .size(48.dp)
                 .align(Alignment.TopEnd)
         ) {
-            Image(painter = painterResource(id = R.drawable.favorite), contentDescription = null)
+            Icon(
+                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                tint = if (isFavorite) Color(0xFFFE724C) else Color.White,
+                modifier = Modifier
+                    .background(Color.Black.copy(alpha = 0.35f), CircleShape)
+                    .padding(10.dp)
+            )
         }
     }
 }
@@ -226,7 +323,7 @@ fun SharedTransitionScope.FoodItemView(foodItem: FoodItem,animatedVisibilityScop
                 ambientColor = Color.Gray.copy(alpha = 0.8f),
                 spotColor = Color.Gray.copy(alpha = 0.8f)
             )
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.surface)
             .clickable{ onClick.invoke(foodItem) }
             .clip(RoundedCornerShape(16.dp))
     ) {
@@ -249,7 +346,7 @@ fun SharedTransitionScope.FoodItemView(foodItem: FoodItem,animatedVisibilityScop
                 modifier = Modifier
                     .padding(8.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(Color.White)
+                    .background(MaterialTheme.colorScheme.surface)
                     .padding(horizontal = 16.dp)
                     .align(Alignment.TopStart)
             )
@@ -261,31 +358,6 @@ fun SharedTransitionScope.FoodItemView(foodItem: FoodItem,animatedVisibilityScop
                     .clip(CircleShape)
                     .align(Alignment.TopEnd)
             )
-            Row(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color.White)
-                    .padding(horizontal = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "4.5", style = MaterialTheme.typography.titleSmall, maxLines = 1
-                )
-                Spacer(modifier = Modifier.size(8.dp))
-                Icon(
-                    imageVector = Icons.Filled.Star,
-                    contentDescription = null,
-                    modifier = Modifier.size(14.dp)
-                )
-                Spacer(modifier = Modifier.size(8.dp))
-                Text(
-                    text = "(21)",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray,
-                    maxLines = 1
-                )
-            }
         }
 
 

@@ -4,19 +4,29 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color.Companion.LightGray
-import androidx.compose.ui.graphics.Color.Companion.Red
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -25,85 +35,78 @@ import coil3.compose.AsyncImage
 import com.example.foodhub_android.ui.FoodHubTextField
 import com.example.foodhub_android.ui.navigation.ImagePicker
 import kotlinx.coroutines.flow.collectLatest
+import com.example.foodhub_android.ui.components.FoodHubHeader
 
 @Composable
 fun AddMenuItemScreen(
     navController: NavController,
     viewModel: AddMenuItemViewModel = hiltViewModel()
 ) {
-
     val name = viewModel.name.collectAsStateWithLifecycle()
     val description = viewModel.description.collectAsStateWithLifecycle()
     val price = viewModel.price.collectAsStateWithLifecycle()
     val uiState = viewModel.addMenuItemState.collectAsStateWithLifecycle()
     val selectedImage = viewModel.imageUrl.collectAsStateWithLifecycle()
+    val imageUri = navController.currentBackStackEntry?.savedStateHandle
+        ?.getStateFlow<Uri?>("imageUri", null)?.collectAsStateWithLifecycle()
 
-    val imageUri =
-        navController.currentBackStackEntry?.savedStateHandle?.getStateFlow<Uri?>("imageUri", null)
-            ?.collectAsStateWithLifecycle()
-    LaunchedEffect(key1 = imageUri?.value) {
-        imageUri?.value?.let {
-            viewModel.onImageUrlChange(it)
-        }
+    LaunchedEffect(imageUri?.value) {
+        imageUri?.value?.let(viewModel::onImageUrlChange)
     }
-    LaunchedEffect(key1 = true) {
-        viewModel.addMenuItemEvent.collectLatest {
-            when (it) {
-                is AddMenuItemViewModel.AddMenuItemEvent.GoBack -> {
-                    Toast.makeText(
-                        navController.context, "Item added Successfully", Toast.LENGTH_SHORT
-                    ).show()
+    LaunchedEffect(Unit) {
+        viewModel.addMenuItemEvent.collectLatest { event ->
+            when (event) {
+                AddMenuItemViewModel.AddMenuItemEvent.GoBack -> {
+                    Toast.makeText(navController.context, "Menu item added", Toast.LENGTH_SHORT).show()
                     navController.previousBackStackEntry?.savedStateHandle?.set("added", true)
                     navController.popBackStack()
-
                 }
-
-                is AddMenuItemViewModel.AddMenuItemEvent.AddNewImage -> {
-                    navController.navigate(ImagePicker)
-                }
-
-                is AddMenuItemViewModel.AddMenuItemEvent.ShowErrorMessage -> {
-                    Toast.makeText(navController.context, it.message, Toast.LENGTH_SHORT).show()
-                }
+                AddMenuItemViewModel.AddMenuItemEvent.AddNewImage -> navController.navigate(ImagePicker)
+                is AddMenuItemViewModel.AddMenuItemEvent.ShowErrorMessage ->
+                    Toast.makeText(navController.context, event.message, Toast.LENGTH_SHORT).show()
             }
         }
     }
-    Column(modifier = Modifier.fillMaxSize()) {
-        Text(text = "Add Menu Item")
-        AsyncImage(model = selectedImage.value,
-            contentDescription = "Food Image",
-            modifier = Modifier
-                .size(140.dp)
-                .clip(shape = RoundedCornerShape(8.dp))
-                .background(LightGray)
-                .clickable {
-                    viewModel.onImageClicked()
-                })
-        FoodHubTextField(value = name.value, onValueChange = {
-            viewModel.onNameChange(it)
-        }, modifier = Modifier.fillMaxWidth(), label = { Text(text = "Name") })
-        FoodHubTextField(value = description.value, onValueChange = {
-            viewModel.onDescriptionChange(it)
-        },
-            modifier = Modifier.fillMaxWidth(), label = { Text(text = "Description") })
-        FoodHubTextField(value = price.value, onValueChange = {
-            viewModel.onPriceChange(it)
-        }, modifier = Modifier.fillMaxWidth(), label = { Text(text = "Price") })
-        if (uiState.value is AddMenuItemViewModel.AddMenuItemState.Loading) {
-            Button(onClick = { }, enabled = false) {
-                Text(text = "Adding Item...")
-            }
-        } else {
-            if (uiState.value is AddMenuItemViewModel.AddMenuItemState.Error) {
-                Text(
-                    text = (uiState.value as AddMenuItemViewModel.AddMenuItemState.Error).message,
-                    color = Red
-                )
-            }
-            Button(onClick = { viewModel.addMenuItem() }) {
-                Text(text = "Add Menu Item")
-            }
+
+    val loading = uiState.value is AddMenuItemViewModel.AddMenuItemState.Loading
+    Column(
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        FoodHubHeader("Add menu item", "Create a new dish", onBack = navController::popBackStack)
+        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        AsyncImage(
+            model = selectedImage.value,
+            contentDescription = "Menu item image",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxWidth().height(220.dp).clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .clickable(enabled = !loading, onClick = viewModel::onImageClicked)
+        )
+        if (selectedImage.value == null) {
+            Text("Tap the image area to choose a photo", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        FoodHubTextField(name.value, viewModel::onNameChange, Modifier.fillMaxWidth(), label = { Text("Name") })
+        FoodHubTextField(description.value, viewModel::onDescriptionChange, Modifier.fillMaxWidth(), label = { Text("Description") })
+        FoodHubTextField(
+            price.value,
+            { value -> if (value.isEmpty() || value.matches(Regex("\\d*(\\.\\d{0,2})?"))) viewModel.onPriceChange(value) },
+            Modifier.fillMaxWidth(),
+            label = { Text("Price") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+        )
+        if (uiState.value is AddMenuItemViewModel.AddMenuItemState.Error) {
+            Text((uiState.value as AddMenuItemViewModel.AddMenuItemState.Error).message, color = MaterialTheme.colorScheme.error)
+        }
+        Spacer(Modifier.height(4.dp))
+        Button(
+            onClick = viewModel::addMenuItem,
+            enabled = !loading,
+            modifier = Modifier.fillMaxWidth().height(52.dp)
+        ) {
+            if (loading) CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
+            else Text("Add menu item")
+        }
         }
     }
 }
-

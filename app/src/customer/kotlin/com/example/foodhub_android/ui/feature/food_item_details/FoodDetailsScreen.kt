@@ -68,6 +68,7 @@ fun SharedTransitionScope.FoodDetailsScreen(
     }
     val count = viewModel.quantity.collectAsStateWithLifecycle()
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
+    val isFavorite = viewModel.isFavorite.collectAsStateWithLifecycle()
     val isLoading = remember {
         mutableStateOf(false)
     }
@@ -99,6 +100,7 @@ fun SharedTransitionScope.FoodDetailsScreen(
             }
         }
     }
+    LaunchedEffect(foodItem.id) { viewModel.loadFavorite(foodItem.id) }
     Column(modifier = Modifier.fillMaxSize()) {
         RestaurantDetailHeader(
             imageUrl = foodItem.imageUrl,
@@ -106,7 +108,8 @@ fun SharedTransitionScope.FoodDetailsScreen(
             onBackButton = {
                 navController.popBackStack()
             },
-            onFavoriteButton = { TODO() }
+            onFavoriteButton = { viewModel.toggleFavorite(foodItem.id) },
+            isFavorite = isFavorite.value
         )
         RestaurantDetails(
             title = foodItem.name,

@@ -13,6 +13,7 @@ import com.example.foodhub_android.data.FoodHubSession
 import com.example.foodhub_android.data.models.SignInRequest
 import com.example.foodhub_android.data.remote.ApiResponse
 import com.example.foodhub_android.data.remote.safeApiCall
+import com.example.foodhub_android.notification.FoodHubNotificationManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -26,7 +27,8 @@ import kotlin.coroutines.cancellation.CancellationException
 @HiltViewModel
 class SignInViewModel @Inject constructor(
     override val foodApi: FoodApi,
-    private val session: FoodHubSession
+    private val session: FoodHubSession,
+    private val notificationManager: FoodHubNotificationManager
 ) : BaseAuthViewModel(foodApi) {
 
     private val _uiState = MutableStateFlow<SignInEvent>(SignInEvent.Nothing)
@@ -61,6 +63,7 @@ class SignInViewModel @Inject constructor(
                 }) {
                     is ApiResponse.Success -> {
                         session.storeToken(response.data.token)
+                        notificationManager.initialize()
                         _uiState.value = SignInEvent.Success
                         _navigationEvent.emit(SignInNavigationEvent.NavigateToHome)
                     }
@@ -107,6 +110,7 @@ class SignInViewModel @Inject constructor(
 
     override suspend fun onSocialLoginSuccess(token: String) {
         session.storeToken(token)
+        notificationManager.initialize()
         _uiState.value = SignInEvent.Success
         _navigationEvent.emit(SignInNavigationEvent.NavigateToHome)
     }

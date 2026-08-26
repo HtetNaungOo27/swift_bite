@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.foodhub_android.data.FoodApi
 import com.example.foodhub_android.data.FoodHubSession
 import com.example.foodhub_android.data.models.Restaurant
+import com.example.foodhub_android.data.models.RestaurantStatistics
 import com.example.foodhub_android.data.remote.ApiResponse
 import com.example.foodhub_android.data.remote.safeApiCall
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,9 +20,12 @@ class HomeViewModel @Inject constructor(val foodApi: FoodApi, val session: FoodH
 
     private val _uiState = MutableStateFlow<HomeScreenState>(HomeScreenState.Loading)
     val uiState = _uiState.asStateFlow()
+    private val _statistics = MutableStateFlow<StatisticsState>(StatisticsState.Loading)
+    val statistics = _statistics.asStateFlow()
 
     init {
         getRestaurantProfile()
+        getStatistics()
     }
 
     fun getRestaurantProfile() {
@@ -47,12 +51,32 @@ class HomeViewModel @Inject constructor(val foodApi: FoodApi, val session: FoodH
 
     fun retry() {
         getRestaurantProfile()
+        getStatistics()
+    }
+
+    fun logout() = session.clear()
+
+    fun getStatistics() {
+        viewModelScope.launch {
+            _statistics.value = StatisticsState.Loading
+            when (val response = safeApiCall { foodApi.getRestaurantStatistics() }) {
+                is ApiResponse.Success -> _statistics.value = StatisticsState.Success(response.data)
+                is ApiResponse.Error -> _statistics.value = StatisticsState.Error(response.message ?: "Unable to load analytics")
+                is ApiResponse.Exception -> _statistics.value = StatisticsState.Error("Analytics are temporarily unavailable")
+            }
+        }
     }
 
     sealed class HomeScreenState {
         object Loading : HomeScreenState()
         object Failed : HomeScreenState()
         data class Success(val data: Restaurant) : HomeScreenState()
+    }
+
+    sealed interface StatisticsState {
+        data object Loading : StatisticsState
+        data class Success(val data: RestaurantStatistics) : StatisticsState
+        data class Error(val message: String) : StatisticsState
     }
 
 }

@@ -1,76 +1,62 @@
 package com.example.foodhub_android.ui.feature.menu.image
 
 import android.net.Uri
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
-
+import com.example.foodhub_android.ui.components.FoodHubHeader
 
 @Composable
 fun ImagePickerScreen(navController: NavController) {
-    val context = LocalContext.current
-    val selectedImageUri = remember {
-        mutableStateOf<Uri?>(null)
-    }
-    val coroutineScope = rememberCoroutineScope()
-
-    val imagePickerLauncher =
-        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
-            if (uri != null) {
-                selectedImageUri.value = uri
-            } else {
-                Toast.makeText(context, "Image not selected", Toast.LENGTH_SHORT).show()
-                navController.popBackStack()
-            }
-        }
-
-    val permissionLauncher =
-        rememberLauncherForActivityResult(contract = ActivityResultContracts.RequestPermission()) { isGranted ->
-            if (isGranted) {
-                imagePickerLauncher.launch("image/*")
-            }
-        }
-
-    LaunchedEffect(key1 = true) {
-        if (context.checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            imagePickerLauncher.launch("image/*")
-        } else {
-            permissionLauncher.launch(android.Manifest.permission.READ_EXTERNAL_STORAGE)
-        }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri == null && selectedImageUri == null) navController.popBackStack()
+        else if (uri != null) selectedImageUri = uri
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    LaunchedEffect(Unit) { picker.launch("image/*") }
+
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        FoodHubHeader("Choose menu image", "Preview before using it", onBack = navController::popBackStack)
+        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         AsyncImage(
-            model = selectedImageUri.value,
-            contentDescription = null,
-            modifier = Modifier.fillMaxWidth()
+            model = selectedImageUri,
+            contentDescription = "Selected menu image",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxWidth().height(360.dp)
         )
-
-        Button(onClick = {
-            navController.previousBackStackEntry?.savedStateHandle?.set(
-                "imageUri",
-                selectedImageUri.value
-            )
-            navController.popBackStack()
-
-        }) {
-            Text(text = "Select Image")
+        OutlinedButton(onClick = { picker.launch("image/*") }, modifier = Modifier.fillMaxWidth()) {
+            Text("Choose another image")
         }
-
+        Button(
+            enabled = selectedImageUri != null,
+            onClick = {
+                navController.previousBackStackEntry?.savedStateHandle?.set("imageUri", selectedImageUri)
+                navController.popBackStack()
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Use this image") }
+        }
     }
-
 }

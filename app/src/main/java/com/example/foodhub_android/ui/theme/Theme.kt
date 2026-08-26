@@ -8,19 +8,46 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.Shapes
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Orange,
-    secondary = Orange,
-    tertiary = TertiaryDarkBlue
+    primary = Color(0xFFFF9B82),
+    onPrimary = Color(0xFF4A1004),
+    primaryContainer = Color(0xFF7A2A17),
+    secondary = Color(0xFFFFC857),
+    background = Color(0xFF111318),
+    surface = Color(0xFF191C22),
+    surfaceVariant = Color(0xFF24272F)
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Orange,
-    secondary = Orange,
-    tertiary = TertiaryBlue
+    primary = CustomerCoral,
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFFFE3DA),
+    onPrimaryContainer = CustomerCoralDark,
+    secondary = Mustard,
+    onSecondary = Ink,
+    background = CustomerCream,
+    onBackground = Ink,
+    surface = Color.White,
+    onSurface = Ink,
+    surfaceVariant = Color(0xFFF4EFEC),
+    onSurfaceVariant = MutedInk,
+    outline = SoftOutline,
+    error = Color(0xFFBA1A1A)
+)
+
+private val AppShapes = Shapes(
+    extraSmall = RoundedCornerShape(10.dp),
+    small = RoundedCornerShape(14.dp),
+    medium = RoundedCornerShape(20.dp),
+    large = RoundedCornerShape(28.dp),
+    extraLarge = RoundedCornerShape(36.dp)
 )
 
 @Composable
@@ -43,6 +70,7 @@ fun FoodHubAndroidTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
+        shapes = AppShapes,
         content = content
     )
 }

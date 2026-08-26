@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.view.animation.OvershootInterpolator
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContentTransitionScope
@@ -66,7 +65,10 @@ import com.example.foodhub_android.ui.feature.home.HomeScreen
 import com.example.foodhub_android.ui.feature.order_details.OrderDetailsScreen
 import com.example.foodhub_android.ui.feature.order_success.OrderSuccess
 import com.example.foodhub_android.ui.features.orders.OrderListScreen
+import com.example.foodhub_android.ui.features.notifications.NotificationsList
+import com.example.foodhub_android.ui.features.notifications.NotificationsViewModel
 import com.example.foodhub_android.ui.feature.restaurant_details.RestaurantDetailScreen
+import com.example.foodhub_android.ui.feature.profile.ProfileScreen
 import com.example.foodhub_android.ui.navigation.AddAddress
 import com.example.foodhub_android.ui.navigation.AddressList
 import com.example.foodhub_android.ui.navigation.AuthScreen
@@ -78,6 +80,7 @@ import com.example.foodhub_android.ui.navigation.NavRoute
 import com.example.foodhub_android.ui.navigation.Notification
 import com.example.foodhub_android.ui.navigation.OrderList
 import com.example.foodhub_android.ui.navigation.OrderSuccess
+import com.example.foodhub_android.ui.navigation.Profile
 import com.example.foodhub_android.ui.navigation.RestaurantDetails
 import com.example.foodhub_android.ui.navigation.SignUp
 import com.example.foodhub_android.ui.navigation.foodItemNavType
@@ -88,12 +91,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collectLatest
 import javax.inject.Inject
 import kotlin.reflect.typeOf
 import com.example.foodhub_android.ui.navigation.OrderDetails
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : BaseFoodHubActivity() {
     var showSplashScreen = true
 
     @Inject
@@ -102,54 +106,32 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var session: FoodHubSession
 
-    sealed class BottomNavItem(val route: NavRoute, val icon: Int) {
+    sealed class BottomNavItem(val route: NavRoute, val icon: Int, val label: String) {
         object Home :
-            BottomNavItem(com.example.foodhub_android.ui.navigation.Home, R.drawable.ic_home)
+            BottomNavItem(com.example.foodhub_android.ui.navigation.Home, R.drawable.ic_home, "Home")
 
         object Cart :
-            BottomNavItem(com.example.foodhub_android.ui.navigation.Cart, R.drawable.ic_cart)
+            BottomNavItem(com.example.foodhub_android.ui.navigation.Cart, R.drawable.ic_cart, "Cart")
 
         object Notification : BottomNavItem(
-            com.example.foodhub_android.ui.navigation.Notification, R.drawable.ic_notification)
+            com.example.foodhub_android.ui.navigation.Notification, R.drawable.ic_notification, "Alerts")
 
         object Orders : BottomNavItem(
-            OrderList, R.drawable.ic_orders)
+            OrderList, R.drawable.ic_orders, "Orders")
+
+        object Profile : BottomNavItem(
+            com.example.foodhub_android.ui.navigation.Profile, R.drawable.ic_profile, "Profile")
 
     }
 
     @OptIn(ExperimentalSharedTransitionApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
         installSplashScreen().apply {
             setKeepOnScreenCondition {
                 showSplashScreen
             }
             setOnExitAnimationListener { screen ->
-                val zoomX = ObjectAnimator.ofFloat(
-                    screen.iconView,
-                    View.SCALE_X,
-                    0.5f,
-                    0f
-                )
-                val zoomY = ObjectAnimator.ofFloat(
-                    screen.iconView,
-                    View.SCALE_Y,
-                    0.5f,
-                    0f
-                )
-
-                zoomX.duration = 500
-                zoomY.duration = 500
-                zoomX.interpolator = OvershootInterpolator()
-                zoomY.interpolator = OvershootInterpolator()
-                zoomX.doOnEnd {
-                    screen.remove()
-                }
-                zoomY.doOnEnd {
-                    screen.remove()
-                }
-                zoomX.start()
-                zoomY.start()
+                screen.remove()
             }
         }
         super.onCreate(savedInstanceState)
@@ -164,9 +146,20 @@ class MainActivity : ComponentActivity() {
                     BottomNavItem.Home,
                     BottomNavItem.Cart,
                     BottomNavItem.Notification,
-                    BottomNavItem.Orders
+                    BottomNavItem.Orders,
+                    BottomNavItem.Profile
                 )
                 val navController = rememberNavController()
+                val notificationViewModel: NotificationsViewModel = hiltViewModel()
+                val unreadCount = notificationViewModel.unreadCount.collectAsStateWithLifecycle()
+                LaunchedEffect(Unit) {
+                    viewModel.event.collectLatest { event ->
+                        when (event) {
+                            is HomeViewModel.HomeEvent.NavigateToOrderDetail ->
+                                navController.navigate(OrderDetails(event.orderID))
+                        }
+                    }
+                }
                 val cartViewModel: CartViewModel = hiltViewModel()
                 val cartItemSize = cartViewModel.cartItemCount.collectAsStateWithLifecycle()
                 Scaffold(
@@ -176,7 +169,8 @@ class MainActivity : ComponentActivity() {
                         AnimatedVisibility(visible = shouldShowBottomNav.value) {
 
                             NavigationBar(
-                                containerColor = Color.White
+                                containerColor = MaterialTheme.colorScheme.surface,
+                                tonalElevation = 10.dp
                             ) {
                                 navItems.forEach { item ->
                                     val selected = currentRoute?.hierarchy?.any { it.route == item.route::class.qualifiedName } == true
@@ -215,9 +209,27 @@ class MainActivity : ComponentActivity() {
 
                                                 }
 
+                                                if (item.route == Notification && unreadCount.value > 0) {
+                                                    Box(
+                                                        modifier = Modifier.size(16.dp)
+                                                            .clip(CircleShape)
+                                                            .align(Alignment.TopEnd)
+                                                            .background(MaterialTheme.colorScheme.error)
+                                                    ) {
+                                                        Text(
+                                                            text = unreadCount.value.coerceAtMost(99).toString(),
+                                                            modifier = Modifier.align(Alignment.Center),
+                                                            color = MaterialTheme.colorScheme.onError,
+                                                            style = TextStyle(fontSize = 10.sp)
+                                                        )
+                                                    }
+                                                }
+
                                             }
 
-                                        })
+                                        },
+                                        label = { Text(item.label, maxLines = 1) }
+                                    )
                                 }
                             }
                         }
@@ -302,9 +314,7 @@ class MainActivity : ComponentActivity() {
 
                             composable<Notification> {
                                 shouldShowBottomNav.value = true
-                                Box {
-
-                                }
+                                NotificationsList(navController, notificationViewModel)
                             }
                             composable<AddressList> {
                                 shouldShowBottomNav.value = false
@@ -323,6 +333,10 @@ class MainActivity : ComponentActivity() {
                                 shouldShowBottomNav.value = true
                                 OrderListScreen(navController)
                             }
+                            composable<Profile> {
+                                shouldShowBottomNav.value = true
+                                ProfileScreen(navController)
+                            }
                             composable<OrderDetails> {
                                 shouldShowBottomNav.value = false
                                 val orderID = it.toRoute<OrderDetails>().orderID
@@ -339,6 +353,7 @@ class MainActivity : ComponentActivity() {
         CoroutineScope(Dispatchers.IO).launch {
             delay(3000)
             showSplashScreen = false
+            processIntent(intent, viewModel)
         }
     }
 }

@@ -3,10 +3,10 @@ package com.example.foodhub_android.ui.feature.add_address
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.foodhub_android.data.FoodApi
-import com.example.foodhub_android.data.models.ReverseGeocodeRequest
+import com.example.foodhub_android.data.FoodHubSession
+import com.example.foodhub_android.data.models.Address
 import com.example.foodhub_android.data.remote.ApiResponse
 import com.example.foodhub_android.data.remote.safeApiCall
-import com.example.foodhub_android.location.LocationManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,61 +16,76 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class AddAddressViewModel @Inject constructor(val foodApi: FoodApi,
-    private val locationManager: LocationManager
-): ViewModel() {
-
-    private val _uiState = MutableStateFlow<AddAddressState>(AddAddressState.Loading)
+class AddAddressViewModel @Inject constructor(
+    private val foodApi: FoodApi,
+    private val session: FoodHubSession
+) : ViewModel() {
+    private val _uiState = MutableStateFlow<AddAddressState>(AddAddressState.Ready)
     val uiState = _uiState.asStateFlow()
-
     private val _event = MutableSharedFlow<AddAddressEvent>()
     val event = _event.asSharedFlow()
 
-    private val _address = MutableStateFlow<com.example.foodhub_android.data.models.Address?>(null)
-    val address = _address.asStateFlow()
-    fun getLocation() = locationManager.getLocation()
-
-    fun reverseGeocode(lat: Double, lon: Double) {
+    fun saveAddress(
+        line1: String,
+        line2: String,
+        city: String,
+        state: String,
+        zipCode: String,
+        country: String,
+        landmark: String,
+        plusCode: String,
+        latitude: Double,
+        longitude: Double
+    ) {
+        if (line1.isBlank() || city.isBlank() || state.isBlank() || zipCode.isBlank() || country.isBlank()) {
+            _uiState.value = AddAddressState.Error("Please complete all required fields.")
+            return
+        }
+        if (plusCode.isNotBlank() && !plusCode.contains('+')) {
+            _uiState.value = AddAddressState.Error("Enter a valid Plus Code containing ‘+’, or leave it blank.")
+            return
+        }
         viewModelScope.launch {
-            _address.value = null
-            val address = safeApiCall { foodApi.reverseGeocode(ReverseGeocodeRequest(lat, lon)) }
-            when (address) {
+            _uiState.value = AddAddressState.Saving
+            val result = safeApiCall {
+                foodApi.storeAddress(
+                    Address(
+                        addressLine1 = line1.trim(),
+                        addressLine2 = line2.trim().ifBlank { null },
+                        city = city.trim(),
+                        state = state.trim(),
+                        zipCode = zipCode.trim(),
+                        country = country.trim(),
+                        landmark = landmark.trim().ifBlank { null },
+                        plusCode = plusCode.trim().ifBlank { null },
+                        latitude = latitude,
+                        longitude = longitude
+                    )
+                )
+            }
+            when (result) {
                 is ApiResponse.Success -> {
-                    _address.value = address.data.addresses.firstOrNull()
-                    _uiState.value = AddAddressState.Success
+                    _uiState.value = AddAddressState.Ready
+                    _event.emit(AddAddressEvent.Saved)
                 }
-                else -> {
-                    _address.value = null
-                    _uiState.value = AddAddressState.Error("Failed to reverse geocode")
+                is ApiResponse.Error -> {
+                    if (result.code == 401) {
+                        session.clear()
+                        _event.emit(AddAddressEvent.SessionExpired)
+                    } else _uiState.value = AddAddressState.Error(result.message ?: "Unable to save this address.")
                 }
+                is ApiResponse.Exception -> _uiState.value = AddAddressState.Error("We couldn’t connect. Check your internet and try again.")
             }
         }
     }
 
-
-
-    fun onAddAddressClicked(){
-        viewModelScope.launch {
-            _uiState.value = AddAddressState.AddressStoring
-            val result = safeApiCall { foodApi.storeAddress(address.value!!)}
-            when(result){
-                is ApiResponse.Success -> {
-                    _uiState.value = AddAddressState.Success
-                    _event.emit(AddAddressEvent.NavigateToAddressList)
-                }
-                else -> {
-                    _uiState.value = AddAddressState.Error("Failed to store address")}
-            }
-        }
+    sealed interface AddAddressEvent {
+        data object Saved : AddAddressEvent
+        data object SessionExpired : AddAddressEvent
     }
-
-    sealed class AddAddressEvent {
-        object NavigateToAddressList : AddAddressEvent()
-    }
-    sealed class AddAddressState {
-        object Loading : AddAddressState()
-        object Success : AddAddressState()
-        object AddressStoring : AddAddressState()
-        data class Error(val message: String) : AddAddressState()
+    sealed interface AddAddressState {
+        data object Ready : AddAddressState
+        data object Saving : AddAddressState
+        data class Error(val message: String) : AddAddressState
     }
 }

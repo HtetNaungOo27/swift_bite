@@ -14,5 +14,7 @@ data class Address(
     val longitude: Double? = null,
     val state: String,
     val userId: String? = null,
-    val zipCode: String
+    val zipCode: String,
+    val landmark: String? = null,
+    val plusCode: String? = null
 ) : Parcelable

@@ -1,8 +1,6 @@
 package com.example.foodhub_android.data
 
 import android.content.Context
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -12,6 +10,7 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -21,18 +20,32 @@ object NetworkModule {
         FoodHubSession(context)
 
     @Provides
-    fun provideHttpClient(session: FoodHubSession): OkHttpClient =
+    @Singleton
+    fun provideHttpClient(
+        @ApplicationContext context: Context,
+        session: FoodHubSession
+    ): OkHttpClient =
         OkHttpClient.Builder()
             .addInterceptor { chain ->
-                val requestBuilder = chain.request().newBuilder()
+                val requestBuilder = chain.request()
+                    .newBuilder()
+                    .header("X-Package-Name", context.packageName)
+
                 session.getToken()?.let { token ->
-                    requestBuilder.header("Authorization", "Bearer $token")
+                    requestBuilder.header(
+                        "Authorization",
+                        "Bearer $token"
+                    )
                 }
+
                 chain.proceed(requestBuilder.build())
             }
-            .addInterceptor(HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BODY
-            })
+            .addInterceptor(
+                HttpLoggingInterceptor().apply {
+                    redactHeader("Authorization")
+                    level = HttpLoggingInterceptor.Level.BASIC
+                }
+            )
             .build()
 
     @Provides
@@ -47,11 +60,6 @@ object NetworkModule {
     @Provides
     fun provideFoodApi(retrofit: Retrofit): FoodApi{
         return retrofit.create(FoodApi::class.java)
-    }
-
-    @Provides
-    fun provideLocationService(@ApplicationContext context: Context): FusedLocationProviderClient{
-        return LocationServices.getFusedLocationProviderClient(context)
     }
 
 }

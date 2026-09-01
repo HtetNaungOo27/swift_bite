@@ -58,6 +58,19 @@ class AddressListViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel
         }
     }
 
+    fun deleteAddress(address: Address) {
+        val id = address.id ?: return
+        viewModelScope.launch {
+            when (val result = safeApiCall { foodApi.deleteAddress(id) }) {
+                is com.example.foodhub_android.data.remote.ApiResponse.Success -> getAddress()
+                is com.example.foodhub_android.data.remote.ApiResponse.Error ->
+                    _event.emit(AddressEvent.Message(result.message ?: "Unable to delete this address"))
+                is com.example.foodhub_android.data.remote.ApiResponse.Exception ->
+                    _event.emit(AddressEvent.Message("Couldn’t connect to the server"))
+            }
+        }
+    }
+
     sealed class AddressState {
         object Loading : AddressState()
         data class Success(val data: List<Address>) : AddressState()
@@ -68,5 +81,6 @@ class AddressListViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel
         object NavigateToAddAddress : AddressEvent()
         object NavigateToEditAddress : AddressEvent()
         data class NavigateBack(val address: Address) : AddressEvent()
+        data class Message(val text: String) : AddressEvent()
     }
 }

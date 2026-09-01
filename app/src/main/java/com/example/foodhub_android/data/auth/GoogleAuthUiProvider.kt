@@ -6,9 +6,11 @@ import androidx.credentials.Credential
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.NoCredentialException
 import com.example.foodhub_android.GoogleServerClientID
 import com.example.foodhub_android.data.models.GoogleAccount
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 
 //class GoogleAuthUiProvider {
@@ -59,10 +61,19 @@ class GoogleAuthUiProvider {
         activityContext: Context,
         credentialManager: CredentialManager
     ): GoogleAccount {
-        val credential = credentialManager.getCredential(
-            context = activityContext,
-            request = getCredentialRequest()
-        ).credential
+        val credential = try {
+            credentialManager.getCredential(
+                context = activityContext,
+                request = getCredentialRequest()
+            ).credential
+        } catch (_: NoCredentialException) {
+            // Some devices do not return an account for the explicit button option
+            // until the broader account chooser has been requested once.
+            credentialManager.getCredential(
+                context = activityContext,
+                request = getAccountChooserRequest()
+            ).credential
+        }
 
         return handleCredential(credential)
     }
@@ -100,6 +111,18 @@ class GoogleAuthUiProvider {
                 GetSignInWithGoogleOption.Builder(
                     GoogleServerClientID
                 ).build()
+            )
+            .build()
+    }
+
+    private fun getAccountChooserRequest(): GetCredentialRequest {
+        return GetCredentialRequest.Builder()
+            .addCredentialOption(
+                GetGoogleIdOption.Builder()
+                    .setServerClientId(GoogleServerClientID)
+                    .setFilterByAuthorizedAccounts(false)
+                    .setAutoSelectEnabled(false)
+                    .build()
             )
             .build()
     }

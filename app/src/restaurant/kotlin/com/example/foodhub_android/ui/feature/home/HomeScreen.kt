@@ -1,5 +1,8 @@
 package com.example.foodhub_android.ui.feature.home
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
@@ -10,6 +13,10 @@ import androidx.compose.material.icons.rounded.*
 import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,26 +36,34 @@ import com.example.foodhub_android.ui.features.notifications.LoadingScreen
 import com.example.foodhub_android.ui.navigation.MenuList
 import com.example.foodhub_android.ui.navigation.OrderList
 import com.example.foodhub_android.ui.navigation.AuthScreen
+import com.example.foodhub_android.ui.navigation.AppSettings
 import com.example.foodhub_android.data.models.RestaurantStatistics
 import com.example.foodhub_android.utils.StringUtils
+import com.example.foodhub_android.data.models.RestaurantHours
 
 @Composable
 fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltViewModel()) {
     val statistics = viewModel.statistics.collectAsStateWithLifecycle().value
+    val profileUpdate = viewModel.profileUpdate.collectAsStateWithLifecycle().value
+    var editingProfile by remember { mutableStateOf(false) }
+    var editingHours by remember { mutableStateOf(false) }
     when (val state = viewModel.uiState.collectAsStateWithLifecycle().value) {
-        HomeViewModel.HomeScreenState.Loading -> LoadingScreen()
+        HomeViewModel.HomeScreenState.Loading -> FoodHubPage { FoodHubHeader("Restaurant dashboard", "Preparing today’s overview"); DetailSkeleton() }
         HomeViewModel.HomeScreenState.Failed -> ErrorScreen("Failed to load restaurant profile", viewModel::retry)
         is HomeViewModel.HomeScreenState.Success -> {
             val restaurant = state.data
             FoodHubPage {
                 FoodHubHeader(
-                    "Good day 👋",
+                    "Restaurant dashboard",
                     "Here’s how your restaurant looks today",
                     action = {
-                        IconButton(onClick = {
-                            viewModel.logout()
-                            navController.navigate(AuthScreen) { popUpTo(navController.graph.id) { inclusive = true } }
-                        }) { Icon(Icons.AutoMirrored.Rounded.Logout, "Sign out") }
+                        AccountActionsMenu(
+                            onSettings = { navController.navigate(AppSettings) },
+                            onSignOut = {
+                                viewModel.logout()
+                                navController.navigate(AuthScreen) { popUpTo(navController.graph.id) { inclusive = true } }
+                            }
+                        )
                     }
                 )
                 Column(
@@ -66,7 +81,46 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
                                     Text(" ${restaurant.address}", style = MaterialTheme.typography.bodySmall, color = androidx.compose.ui.graphics.Color.White.copy(.88f))
                                 }
                             }
-                            StatusPill("Profile active", Modifier.align(Alignment.TopEnd).padding(14.dp))
+                            Surface(
+                                modifier = Modifier.align(Alignment.TopEnd).padding(14.dp),
+                                shape = MaterialTheme.shapes.large,
+                                color = if (restaurant.isOpen) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer
+                            ) {
+                                Row(Modifier.padding(start = 12.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Text(if (restaurant.isOpen) "Open" else "Closed", style = MaterialTheme.typography.labelMedium)
+                                    Switch(checked = restaurant.isOpen, onCheckedChange = viewModel::setRestaurantOpen)
+                                }
+                            }
+                            IconButton(
+                                onClick = { editingProfile = true },
+                                modifier = Modifier.align(Alignment.TopStart).padding(8.dp)
+                            ) {
+                                Surface(shape = MaterialTheme.shapes.medium, color = androidx.compose.ui.graphics.Color.Black.copy(.45f)) {
+                                    Icon(Icons.Rounded.Edit, "Edit restaurant profile", Modifier.padding(9.dp), tint = androidx.compose.ui.graphics.Color.White)
+                                }
+                            }
+                        }
+                    }
+                    Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.large) {
+                        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Column(Modifier.weight(1f)) {
+                                    Text("Busy mode", style = MaterialTheme.typography.titleMedium)
+                                    Text("Pause new orders while the kitchen catches up", style = MaterialTheme.typography.bodySmall)
+                                }
+                                Switch(checked = restaurant.isBusy, onCheckedChange = viewModel::setRestaurantBusy)
+                            }
+                            HorizontalDivider()
+                            Text("Hours: ${restaurant.opensAt}–${restaurant.closesAt}")
+                            Text("Delivery area: ${restaurant.deliveryRadiusKm.toInt()} km · Minimum ${StringUtils.formatCurrency(restaurant.minimumOrderAmount)}")
+                            Text("Delivery fee: ${StringUtils.formatCurrency(restaurant.deliveryFee)}")
+                            restaurant.phone?.takeIf(String::isNotBlank)?.let { Text("Phone: $it") }
+                            restaurant.cuisine?.takeIf(String::isNotBlank)?.let { Text("Cuisine: $it") }
+                            OutlinedButton(onClick = { editingHours = true }, modifier = Modifier.fillMaxWidth()) {
+                                Icon(Icons.Rounded.Schedule, null)
+                                Spacer(Modifier.width(8.dp))
+                                Text("Set weekly hours")
+                            }
                         }
                     }
                     Text("Quick actions", style = MaterialTheme.typography.titleLarge)
@@ -92,8 +146,177 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
                     Spacer(Modifier.navigationBarsPadding().height(12.dp))
                 }
             }
+            if (editingProfile) {
+                EditRestaurantDialog(
+                    restaurant = restaurant,
+                    state = profileUpdate,
+                    onDismiss = { editingProfile = false; viewModel.clearProfileUpdate() },
+                    onSave = viewModel::updateProfile
+                )
+            }
+            if (editingHours) {
+                WeeklyHoursDialog(
+                    initial = restaurant.weeklyHours.ifEmpty {
+                        (1..7).map { RestaurantHours(it, restaurant.opensAt, restaurant.closesAt) }
+                    },
+                    state = profileUpdate,
+                    onDismiss = { editingHours = false; viewModel.clearProfileUpdate() },
+                    onSave = viewModel::updateWeeklyHours
+                )
+            }
         }
     }
+}
+
+@Composable
+private fun WeeklyHoursDialog(
+    initial: List<RestaurantHours>,
+    state: HomeViewModel.ProfileUpdateState,
+    onDismiss: () -> Unit,
+    onSave: (List<RestaurantHours>) -> Unit
+) {
+    var hours by remember(initial) { mutableStateOf(initial.sortedBy { it.dayOfWeek }) }
+    val names = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+    if (state is HomeViewModel.ProfileUpdateState.Saved) {
+        androidx.compose.runtime.LaunchedEffect(state) { onDismiss() }
+    }
+    val valid = hours.all {
+        it.opensAt.matches(Regex("(?:[01]\\d|2[0-3]):[0-5]\\d")) &&
+            it.closesAt.matches(Regex("(?:[01]\\d|2[0-3]):[0-5]\\d")) &&
+            (it.isClosed || it.opensAt != it.closesAt)
+    }
+    AlertDialog(
+        onDismissRequest = { if (state !is HomeViewModel.ProfileUpdateState.Saving) onDismiss() },
+        icon = { Icon(Icons.Rounded.Schedule, null) },
+        title = { Text("Weekly opening hours") },
+        text = {
+            Column(
+                Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text("Customers can order only during these hours.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                hours.forEachIndexed { index, day ->
+                    Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceVariant) {
+                        Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(names[index], Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+                                Text(if (day.isClosed) "Closed" else "Open", style = MaterialTheme.typography.labelMedium)
+                                Switch(
+                                    checked = !day.isClosed,
+                                    onCheckedChange = { open -> hours = hours.toMutableList().also { it[index] = day.copy(isClosed = !open) } }
+                                )
+                            }
+                            if (!day.isClosed) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    OutlinedTextField(
+                                        day.opensAt,
+                                        { value -> hours = hours.toMutableList().also { it[index] = day.copy(opensAt = value.take(5)) } },
+                                        label = { Text("Opens") }, singleLine = true, modifier = Modifier.weight(1f)
+                                    )
+                                    OutlinedTextField(
+                                        day.closesAt,
+                                        { value -> hours = hours.toMutableList().also { it[index] = day.copy(closesAt = value.take(5)) } },
+                                        label = { Text("Closes") }, singleLine = true, modifier = Modifier.weight(1f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                if (state is HomeViewModel.ProfileUpdateState.Error) {
+                    Text(state.message, color = MaterialTheme.colorScheme.error)
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onSave(hours) }, enabled = valid && state !is HomeViewModel.ProfileUpdateState.Saving) {
+                if (state is HomeViewModel.ProfileUpdateState.Saving) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                else Text("Save hours")
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss, enabled = state !is HomeViewModel.ProfileUpdateState.Saving) { Text("Cancel") } }
+    )
+}
+
+@Composable
+private fun EditRestaurantDialog(
+    restaurant: com.example.foodhub_android.data.models.Restaurant,
+    state: HomeViewModel.ProfileUpdateState,
+    onDismiss: () -> Unit,
+    onSave: (String, String, Uri?, String, String, Double, Double, String, String, Double) -> Unit
+) {
+    var name by remember(restaurant.id) { mutableStateOf(restaurant.name) }
+    var address by remember(restaurant.id) { mutableStateOf(restaurant.address) }
+    var replacementImage by remember(restaurant.id) { mutableStateOf<Uri?>(null) }
+    var opensAt by remember(restaurant.id) { mutableStateOf(restaurant.opensAt) }
+    var closesAt by remember(restaurant.id) { mutableStateOf(restaurant.closesAt) }
+    var radius by remember(restaurant.id) { mutableStateOf(restaurant.deliveryRadiusKm.toString()) }
+    var minimum by remember(restaurant.id) { mutableStateOf((restaurant.minimumOrderAmount * 1000).toInt().toString()) }
+    var phone by remember(restaurant.id) { mutableStateOf(restaurant.phone.orEmpty()) }
+    var cuisine by remember(restaurant.id) { mutableStateOf(restaurant.cuisine.orEmpty()) }
+    var deliveryFee by remember(restaurant.id) { mutableStateOf((restaurant.deliveryFee * 1000).toInt().toString()) }
+    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) {
+        replacementImage = it
+    }
+    if (state is HomeViewModel.ProfileUpdateState.Saved) {
+        androidx.compose.runtime.LaunchedEffect(state) { onDismiss() }
+    }
+    AlertDialog(
+        onDismissRequest = { if (state !is HomeViewModel.ProfileUpdateState.Saving) onDismiss() },
+        icon = { Icon(Icons.Rounded.Storefront, null) },
+        title = { Text("Edit restaurant profile") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                AsyncImage(
+                    model = replacementImage ?: restaurant.imageUrl,
+                    contentDescription = "Restaurant cover preview",
+                    modifier = Modifier.fillMaxWidth().height(150.dp).clip(MaterialTheme.shapes.large),
+                    contentScale = ContentScale.Crop
+                )
+                OutlinedButton(
+                    onClick = { imagePicker.launch("image/*") },
+                    enabled = state !is HomeViewModel.ProfileUpdateState.Saving,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Rounded.PhotoCamera, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(if (replacementImage == null) "Change cover photo" else "Choose another photo")
+                }
+                OutlinedTextField(name, { name = it }, label = { Text("Restaurant name") }, singleLine = true)
+                OutlinedTextField(address, { address = it }, label = { Text("Address") }, minLines = 2)
+                OutlinedTextField(phone, { phone = it.take(40) }, label = { Text("Restaurant phone") }, singleLine = true)
+                OutlinedTextField(cuisine, { cuisine = it.take(120) }, label = { Text("Cuisine type") }, singleLine = true)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(opensAt, { opensAt = it.take(5) }, label = { Text("Opens") }, modifier = Modifier.weight(1f), singleLine = true)
+                    OutlinedTextField(closesAt, { closesAt = it.take(5) }, label = { Text("Closes") }, modifier = Modifier.weight(1f), singleLine = true)
+                }
+                OutlinedTextField(radius, { radius = it.filter(Char::isDigit).take(2) }, label = { Text("Delivery radius (km)") }, singleLine = true)
+                OutlinedTextField(minimum, { minimum = it.filter(Char::isDigit).take(8) }, label = { Text("Minimum order (MMK)") }, singleLine = true)
+                OutlinedTextField(deliveryFee, { deliveryFee = it.filter(Char::isDigit).take(8) }, label = { Text("Delivery fee (MMK)") }, singleLine = true)
+                if (state is HomeViewModel.ProfileUpdateState.Error) {
+                    Text(state.message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onSave(
+                        name, address, replacementImage, opensAt, closesAt,
+                        radius.toDoubleOrNull() ?: 10.0,
+                        (minimum.toDoubleOrNull() ?: 0.0) / 1000.0,
+                        phone, cuisine,
+                        (deliveryFee.toDoubleOrNull() ?: 0.0) / 1000.0
+                    )
+                },
+                enabled = state !is HomeViewModel.ProfileUpdateState.Saving && opensAt.matches(Regex("(?:[01]\\d|2[0-3]):[0-5]\\d")) && closesAt.matches(Regex("(?:[01]\\d|2[0-3]):[0-5]\\d"))
+            ) {
+                if (state is HomeViewModel.ProfileUpdateState.Saving) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                else Text("Save")
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss, enabled = state !is HomeViewModel.ProfileUpdateState.Saving) { Text("Cancel") } }
+    )
 }
 
 @Composable

@@ -35,10 +35,31 @@ class FoodDetailsViewModel @Inject constructor(
 
     fun loadFavorite(foodItemId: String) {
         _isFavorite.value = favoritesStore.contains("food:$foodItemId")
+        viewModelScope.launch {
+            when (val result = safeApiCall { foodApi.getFavorites() }) {
+                is ApiResponse.Success -> {
+                    val serverValue = foodItemId in result.data.ids
+                    _isFavorite.value = serverValue
+                    if (favoritesStore.contains("food:$foodItemId") != serverValue) favoritesStore.toggle("food:$foodItemId")
+                }
+                else -> Unit
+            }
+        }
     }
 
     fun toggleFavorite(foodItemId: String) {
-        _isFavorite.value = favoritesStore.toggle("food:$foodItemId")
+        val desired = favoritesStore.toggle("food:$foodItemId")
+        _isFavorite.value = desired
+        viewModelScope.launch {
+            when (safeApiCall { foodApi.setFavorite(foodItemId, mapOf("favorite" to desired)) }) {
+                is ApiResponse.Success -> Unit
+                else -> {
+                    favoritesStore.toggle("food:$foodItemId")
+                    _isFavorite.value = !desired
+                    _event.emit(FoodDetailsEvent.showErrorDialog("Couldn’t sync this favorite. Try again."))
+                }
+            }
+        }
     }
 
     fun incrementQuantity() {
@@ -55,7 +76,7 @@ class FoodDetailsViewModel @Inject constructor(
         _quantity.value -= 1
     }
 
-    fun addToCart(restaurantId:String, foodItemId: String) {
+    fun addToCart(restaurantId:String, foodItemId: String, selectedModifiers: List<com.example.foodhub_android.data.models.SelectedModifier> = emptyList()) {
         viewModelScope.launch {
             _uiState.value = FoodDetailsUiState.Loading
             val response = safeApiCall {
@@ -63,7 +84,8 @@ class FoodDetailsViewModel @Inject constructor(
                     AddToCartRequest(
                         restaurantId = restaurantId,
                         menuItemId = foodItemId,
-                        quantity = quantity.value
+                        quantity = quantity.value,
+                        selectedModifiers = selectedModifiers
                     )
                 )
             }

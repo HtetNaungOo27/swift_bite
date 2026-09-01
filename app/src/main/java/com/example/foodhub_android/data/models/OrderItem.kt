@@ -5,5 +5,6 @@ data class OrderItem(
     val menuItemId: String,
     val menuItemName: String,
     val orderId: String,
-    val quantity: Int
+    val quantity: Int,
+    val selectedModifiers: List<SelectedModifier> = emptyList()
 )

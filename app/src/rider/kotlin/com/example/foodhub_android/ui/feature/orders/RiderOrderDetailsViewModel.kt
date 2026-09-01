@@ -44,14 +44,15 @@ class RiderOrderDetailsViewModel @Inject constructor(
     }
 
     fun markPickedUp() = update("PICKED_UP")
-    fun markDelivered() = update("DELIVERED")
+    fun markDelivered(deliveryOtp: String, cashReceived: Double? = null) =
+        update("DELIVERED", cashReceived = cashReceived, deliveryOtp = deliveryOtp)
     fun markFailed() = update("FAILED", "Delivery could not be completed")
 
-    private fun update(status: String, reason: String? = null) = viewModelScope.launch {
+    private fun update(status: String, reason: String? = null, cashReceived: Double? = null, deliveryOtp: String? = null) = viewModelScope.launch {
         val current = (_state.value as? State.Success)?.order ?: return@launch
         if (!isTransitionAllowed(current.status, status)) return@launch
         _state.value = State.Updating(current)
-        when (val result = safeApiCall { foodApi.updateDeliveryStatus(orderId, DeliveryStatusUpdate(status, reason)) }) {
+        when (val result = safeApiCall { foodApi.updateDeliveryStatus(orderId, DeliveryStatusUpdate(status, reason, cashReceived, deliveryOtp)) }) {
             is ApiResponse.Success -> {
                 _events.emit("Delivery status updated")
                 if (status == "DELIVERED" || status == "FAILED") {
@@ -59,8 +60,14 @@ class RiderOrderDetailsViewModel @Inject constructor(
                 }
                 else refresh()
             }
-            is ApiResponse.Error -> _state.value = State.Error(result.message ?: "Status update failed")
-            is ApiResponse.Exception -> _state.value = State.Error(result.exception.message ?: "Network error")
+            is ApiResponse.Error -> {
+                _state.value = State.Success(current)
+                _events.emit(result.message ?: "Status update failed")
+            }
+            is ApiResponse.Exception -> {
+                _state.value = State.Success(current)
+                _events.emit(result.exception.message ?: "Network error")
+            }
         }
     }
 

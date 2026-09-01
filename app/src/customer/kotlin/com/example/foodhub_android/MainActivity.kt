@@ -30,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -69,7 +70,12 @@ import com.example.foodhub_android.ui.features.notifications.NotificationsList
 import com.example.foodhub_android.ui.features.notifications.NotificationsViewModel
 import com.example.foodhub_android.ui.feature.restaurant_details.RestaurantDetailScreen
 import com.example.foodhub_android.ui.feature.profile.ProfileScreen
+import com.example.foodhub_android.ui.components.NotificationPermissionPrompt
 import com.example.foodhub_android.ui.navigation.AddAddress
+import com.example.foodhub_android.ui.navigation.AppSettings
+import com.example.foodhub_android.ui.features.settings.AppSettingsScreen
+import com.example.foodhub_android.ui.features.account.AccountScreen
+import com.example.foodhub_android.ui.navigation.Account
 import com.example.foodhub_android.ui.navigation.AddressList
 import com.example.foodhub_android.ui.navigation.AuthScreen
 import com.example.foodhub_android.ui.navigation.Cart
@@ -85,6 +91,8 @@ import com.example.foodhub_android.ui.navigation.RestaurantDetails
 import com.example.foodhub_android.ui.navigation.SignUp
 import com.example.foodhub_android.ui.navigation.foodItemNavType
 import com.example.foodhub_android.ui.theme.FoodHubAndroidTheme
+import com.example.foodhub_android.ui.theme.ThemeMode
+import com.example.foodhub_android.ui.theme.ThemePreferences
 import com.example.foodhub_android.ui.theme.Mustard
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -137,7 +145,18 @@ class MainActivity : BaseFoodHubActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            FoodHubAndroidTheme {
+            ThemePreferences.initialize(applicationContext)
+            val themeMode = ThemePreferences.mode.collectAsStateWithLifecycle().value
+            val systemDark = isSystemInDarkTheme()
+            FoodHubAndroidTheme(darkTheme = when (themeMode) {
+                ThemeMode.SYSTEM -> systemDark
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+            }) {
+                val sessionScope = session.cacheScope.collectAsStateWithLifecycle().value
+                NotificationPermissionPrompt(
+                    isAuthenticated = sessionScope.isNotBlank() && session.getToken() != null
+                )
 
                 val shouldShowBottomNav = remember {
                     mutableStateOf(false)
@@ -156,7 +175,10 @@ class MainActivity : BaseFoodHubActivity() {
                     viewModel.event.collectLatest { event ->
                         when (event) {
                             is HomeViewModel.HomeEvent.NavigateToOrderDetail ->
-                                navController.navigate(OrderDetails(event.orderID))
+                                navController.navigate(OrderDetails(event.orderID)) {
+                                    popUpTo(Home) { inclusive = false }
+                                    launchSingleTop = true
+                                }
                         }
                     }
                 }
@@ -178,15 +200,19 @@ class MainActivity : BaseFoodHubActivity() {
                                     NavigationBarItem(
                                         selected = selected,
                                         onClick = {
-                                            navController.navigate(item.route)
+                                            navController.navigate(item.route) {
+                                                popUpTo(Home) { saveState = true }
+                                                launchSingleTop = true
+                                                restoreState = true
+                                            }
                                         },
                                         icon = {
                                             Box(modifier = Modifier.size(48.dp)) {
 
                                                 Icon(
                                                     painter = painterResource(id = item.icon),
-                                                    contentDescription = null,
-                                                    tint = if (selected) MaterialTheme.colorScheme.primary else Color.Gray,
+                                                    contentDescription = item::class.simpleName?.removeSuffix("Item") ?: "Navigation item",
+                                                    tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                                     modifier = Modifier.align(Alignment.Center)
                                                 )
 
@@ -290,6 +316,7 @@ class MainActivity : BaseFoodHubActivity() {
                                     name = route.restaurantName,
                                     imageUrl = route.restaurantImageUrl,
                                     restaurantID = route.restaurantId,
+                                    isOpen = route.isOpen,
                                     animatedVisibilityScope = this@composable
                                 )
 
@@ -337,6 +364,11 @@ class MainActivity : BaseFoodHubActivity() {
                                 shouldShowBottomNav.value = true
                                 ProfileScreen(navController)
                             }
+                            composable<AppSettings> {
+                                shouldShowBottomNav.value = false
+                                AppSettingsScreen(navController)
+                            }
+                            composable<Account> { AccountScreen(navController) }
                             composable<OrderDetails> {
                                 shouldShowBottomNav.value = false
                                 val orderID = it.toRoute<OrderDetails>().orderID
@@ -350,11 +382,8 @@ class MainActivity : BaseFoodHubActivity() {
         if (::foodApi.isInitialized) {
             Log.d("MainActivity", "FoodApi initialized.")
         }
-        CoroutineScope(Dispatchers.IO).launch {
-            delay(3000)
-            showSplashScreen = false
-            processIntent(intent, viewModel)
-        }
+        showSplashScreen = false
+        processIntent(intent, viewModel)
     }
 }
 

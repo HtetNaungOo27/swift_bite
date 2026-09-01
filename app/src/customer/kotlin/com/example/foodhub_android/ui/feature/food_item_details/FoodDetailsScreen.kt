@@ -9,6 +9,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -22,6 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -30,6 +32,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -72,6 +76,7 @@ fun SharedTransitionScope.FoodDetailsScreen(
     val isLoading = remember {
         mutableStateOf(false)
     }
+    val selectedModifiers = remember(foodItem.id) { mutableStateMapOf<String, String>() }
 
     when (uiState.value) {
         FoodDetailsViewModel.FoodDetailsUiState.Loading -> {
@@ -121,9 +126,9 @@ fun SharedTransitionScope.FoodDetailsScreen(
             .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = "$${foodItem.price}",
+            Text(text = com.example.foodhub_android.utils.StringUtils.formatCurrency(foodItem.price),
                 color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.headlineLarge
+                style = MaterialTheme.typography.titleLarge
             )
             Spacer(modifier = Modifier.weight(1f))
             FoodItemCounter(
@@ -136,15 +141,30 @@ fun SharedTransitionScope.FoodDetailsScreen(
                 count = count.value
             )
         }
+        foodItem.modifierGroups.forEach { group ->
+            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+                Text(group.name + if (group.required) " · Required" else " · Optional", style = MaterialTheme.typography.titleSmall)
+                androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(group.options) { option ->
+                        androidx.compose.material3.FilterChip(
+                            selected = selectedModifiers[group.name] == option.name,
+                            onClick = { selectedModifiers[group.name] = option.name },
+                            label = { Text(option.name + if (option.additionalPrice > 0) " +${com.example.foodhub_android.utils.StringUtils.formatCurrency(option.additionalPrice)}" else "") }
+                        )
+                    }
+                }
+            }
+        }
         Spacer(modifier = Modifier.weight(1f))
         Button(
             onClick = {
                 viewModel.addToCart(
                     restaurantId = foodItem.restaurantId,
-                    foodItemId = foodItem.id
+                    foodItemId = foodItem.id,
+                    selectedModifiers = selectedModifiers.map { com.example.foodhub_android.data.models.SelectedModifier(it.key, it.value) }
                 )
             },
-            enabled = !isLoading.value,
+            enabled = !isLoading.value && foodItem.modifierGroups.filter { it.required }.all { selectedModifiers.containsKey(it.name) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
@@ -251,19 +271,14 @@ fun SharedTransitionScope.FoodDetailsScreen(
 @Composable
 fun FoodItemCounter(onCounterIncrement:() -> Unit, onCounterDecrement: () -> Unit, count: Int){
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Image(painter = painterResource(id = R.drawable.add),
-            contentDescription = null,
-            modifier = Modifier
-                .size(91.dp)
-                .clickable { onCounterIncrement.invoke() } )
-        Spacer(modifier = Modifier.width(10.dp))
+        IconButton(onClick = onCounterDecrement, enabled = count > 1, modifier = Modifier.size(48.dp)) {
+            Image(painterResource(R.drawable.minus), "Decrease quantity", Modifier.size(28.dp))
+        }
         Text(text = "${count}",
-            style = MaterialTheme.typography.titleLarge)
-        Spacer(modifier = Modifier.width(10.dp))
-        Image(painter = painterResource(id = R.drawable.minus),
-            contentDescription = null,
-            modifier = Modifier
-                .clip(CircleShape)
-                .clickable { onCounterDecrement.invoke() })
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(horizontal = 8.dp))
+        IconButton(onClick = onCounterIncrement, enabled = count < 5, modifier = Modifier.size(48.dp)) {
+            Image(painterResource(R.drawable.add), "Increase quantity", Modifier.size(28.dp))
+        }
     }
 }

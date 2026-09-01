@@ -143,7 +143,7 @@ Use Stripe test keys for development. Secret keys and webhook secrets belong onl
 
 ### Google Maps
 
-Maps are used for delivery-pin selection only; SwiftBite does not collect background location or provide live tracking. Add the restricted Android Maps key to the user-level Gradle properties file (do not commit it):
+Maps are used for delivery-pin selection and foreground rider navigation. While an online rider keeps the Jobs screen active, the app publishes fresh high-accuracy coordinates every 30 seconds. SwiftBite does not collect background location. Add the restricted Android Maps key to the user-level Gradle properties file (do not commit it):
 
 ```properties
 MAPS_API_KEY=your_restricted_android_key
@@ -195,11 +195,10 @@ The backend validates role ownership and permitted transitions. Clients must not
 
 SwiftBite is designed for a school demonstration, not production deployment. Current intentional limitations include:
 
-- No live GPS tracking; maps are limited to manual delivery-pin selection
+- No background rider tracking or customer-facing moving-rider map
 - No customer–rider chat
-- No automated refund workflow
-- No promotions or scheduled delivery
-- No Room offline cache
+- Refund processing is limited to supported Stripe cancellation paths
+- No promotion/coupon engine
 - Limited automated UI/end-to-end tests
 - Local cleartext backend URL for emulator development
 
@@ -383,11 +382,10 @@ The backend validates role ownership and permitted transitions. Clients must not
 
 SwiftBite is designed for a school demonstration, not production deployment. Current intentional limitations include:
 
-- No live GPS tracking or customer map view
+- No background rider tracking or customer-facing moving-rider map
 - No customer–rider chat
-- No automated refund workflow
-- No promotions or scheduled delivery
-- No Room offline cache
+- Refund processing is limited to supported Stripe cancellation paths
+- No promotion/coupon engine
 - Limited automated UI/end-to-end tests
 - Local cleartext backend URL for emulator development
 

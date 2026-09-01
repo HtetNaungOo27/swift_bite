@@ -1,6 +1,8 @@
 package com.example.foodhub_android.ui.feature.wallet
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.Refresh
@@ -30,7 +32,7 @@ fun RiderWalletScreen(viewModel: RiderWalletViewModel = hiltViewModel()) {
 
 @Composable
 private fun WalletContent(wallet: RiderWallet, settling: Boolean, settle: () -> Unit) {
-    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.extraLarge) {
             Column(Modifier.fillMaxWidth().padding(22.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                 Icon(Icons.Rounded.AccountBalanceWallet, null, tint = MaterialTheme.colorScheme.primary)
@@ -42,11 +44,26 @@ private fun WalletContent(wallet: RiderWallet, settling: Boolean, settle: () -> 
         WalletRow("COD cash collected", wallet.cashCollected)
         WalletRow("Delivery earnings", wallet.deliveryEarnings)
         Text("${wallet.completedDeliveries} completed deliveries", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.weight(1f))
         Button(onClick = settle, enabled = wallet.amountToSettle > 0 && !settling, modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp)) {
             Text(if (settling) "Settling…" else "Record settlement")
         }
         Text("For this school project, settlement records the handover locally in the backend. A production app would connect to a payment provider.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Settlement history", style = MaterialTheme.typography.titleLarge)
+        if (wallet.settlements.isEmpty()) {
+            Text("No cash handovers recorded yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else {
+            wallet.settlements.forEach { settlement ->
+                ElevatedCard(shape = MaterialTheme.shapes.large) {
+                    Row(Modifier.fillMaxWidth().padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Cash handed over", style = MaterialTheme.typography.titleMedium)
+                            Text(settlement.createdAt.replace('T', ' ').take(16), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Text(StringUtils.formatCurrency(settlement.amount), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.titleMedium)
+                    }
+                }
+            }
+        }
         Spacer(Modifier.navigationBarsPadding())
     }
 }

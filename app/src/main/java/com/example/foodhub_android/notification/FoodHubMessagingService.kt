@@ -32,7 +32,8 @@ class FoodHubMessagingService : FirebaseMessagingService() {
             title = message.notification?.title ?: message.data["title"] ?: "SwiftBite",
             message = message.notification?.body ?: message.data["message"] ?: "You have an order update",
             pendingIntent = pendingIntent,
-            notificationId = orderId?.hashCode() ?: message.messageId?.hashCode() ?: 1
+            notificationId = orderId?.hashCode() ?: message.messageId?.hashCode() ?: 1,
+            type = message.data["type"].orEmpty()
         )
     }
 

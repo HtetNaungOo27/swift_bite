@@ -6,6 +6,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import com.example.foodhub_android.data.local.RoomCacheStore
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -16,8 +17,11 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
     @Provides
-    fun provideSession(@ApplicationContext context: Context): FoodHubSession =
-        FoodHubSession(context)
+    @Singleton
+    fun provideSession(
+        @ApplicationContext context: Context,
+        cacheStore: RoomCacheStore
+    ): FoodHubSession = FoodHubSession(context, cacheStore)
 
     @Provides
     @Singleton

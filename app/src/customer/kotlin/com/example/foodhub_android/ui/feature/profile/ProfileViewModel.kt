@@ -34,9 +34,33 @@ class ProfileViewModel @Inject constructor(
 
     fun logout() = session.clear()
 
+    fun updateName(name: String) = viewModelScope.launch {
+        val normalized = name.trim()
+        if (normalized.length !in 2..80) {
+            _updateState.value = UpdateState.Error("Name must contain 2 to 80 characters")
+            return@launch
+        }
+        _updateState.value = UpdateState.Saving
+        when (val result = safeApiCall { foodApi.updateCustomerProfile(mapOf("name" to normalized)) }) {
+            is ApiResponse.Success -> { _updateState.value = UpdateState.Saved; refresh() }
+            is ApiResponse.Error -> _updateState.value = UpdateState.Error(result.message ?: "Unable to update profile")
+            is ApiResponse.Exception -> _updateState.value = UpdateState.Error("Couldn’t connect to the server")
+        }
+    }
+
+    private val _updateState = MutableStateFlow<UpdateState>(UpdateState.Idle)
+    val updateState = _updateState.asStateFlow()
+    fun clearUpdateState() { _updateState.value = UpdateState.Idle }
+
     sealed interface State {
         data object Loading : State
         data class Success(val profile: CustomerProfile) : State
         data class Error(val message: String) : State
+    }
+    sealed interface UpdateState {
+        data object Idle : UpdateState
+        data object Saving : UpdateState
+        data object Saved : UpdateState
+        data class Error(val message: String) : UpdateState
     }
 }

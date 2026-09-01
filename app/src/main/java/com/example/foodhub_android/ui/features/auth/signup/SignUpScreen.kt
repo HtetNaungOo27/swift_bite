@@ -20,6 +20,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.Surface
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
@@ -67,29 +68,11 @@ fun SignUpScreen(navController: NavController,viewModel: SignUpViewModel= hiltVi
         val name = viewModel.name.collectAsStateWithLifecycle()
         val email = viewModel.email.collectAsStateWithLifecycle()
         val password = viewModel.password.collectAsStateWithLifecycle()
-        val errorMessage = remember { mutableStateOf<String?>(null) }
-        val loading = remember { mutableStateOf(false) }
         var passwordVisible by rememberSaveable { mutableStateOf(false) }
 
-        val uiState = viewModel.uiState.collectAsState()
-        when(uiState.value){
-
-            is SignUpViewModel.SignUpEvent.Error -> {
-                // show error
-                loading.value = false
-                errorMessage.value = "Failed"
-            }
-
-            is SignUpViewModel.SignUpEvent.Loading -> {
-                loading.value = true
-                errorMessage.value = null
-            }
-
-            else -> {
-                loading.value = false
-                errorMessage.value = null
-            }
-        }
+        val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+        val loading = uiState is SignUpViewModel.SignUpEvent.Loading
+        val errorMessage = if (uiState is SignUpViewModel.SignUpEvent.Error) "We couldn’t create your account. Check your details and try again." else null
 
         val context = LocalContext.current
         LaunchedEffect(true) {
@@ -112,32 +95,31 @@ fun SignUpScreen(navController: NavController,viewModel: SignUpViewModel= hiltVi
             }
 
         }
-        Image(
-            painter = painterResource(R.drawable.ic_auth_bg),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.FillBounds,
-            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
-        )
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .navigationBarsPadding()
-                .padding(horizontal = 28.dp),
+                .imePadding()
+                .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Space reserved for the decorative circles
-            Spacer(modifier = Modifier.height(104.dp))
+            Spacer(modifier = Modifier.height(42.dp))
+
+            Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.large) {
+                Text("SWIFTBITE", Modifier.padding(horizontal = 14.dp, vertical = 8.dp), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            }
+            Spacer(modifier = Modifier.height(24.dp))
 
             Text(
                 text = stringResource(R.string.sign_up),
                 modifier = Modifier.fillMaxWidth(),
                 color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 30.sp,
-                fontWeight = FontWeight.Bold
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
             )
+            Text("Create your customer account", color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
 
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -147,7 +129,7 @@ fun SignUpScreen(navController: NavController,viewModel: SignUpViewModel= hiltVi
                 label = {
                     Text(
                         text = stringResource(R.string.full_name),
-                        color = Color(0xFF9B9BA8)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
                 modifier = Modifier.fillMaxWidth()
@@ -161,7 +143,7 @@ fun SignUpScreen(navController: NavController,viewModel: SignUpViewModel= hiltVi
                 label = {
                     Text(
                         text = stringResource(R.string.email),
-                        color = Color(0xFF9B9BA8)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
                 modifier = Modifier.fillMaxWidth()
@@ -175,7 +157,7 @@ fun SignUpScreen(navController: NavController,viewModel: SignUpViewModel= hiltVi
                 label = {
                     Text(
                         text = stringResource(R.string.password),
-                        color = Color(0xFF9B9BA8)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -191,19 +173,20 @@ fun SignUpScreen(navController: NavController,viewModel: SignUpViewModel= hiltVi
             )
 
             Spacer(modifier = Modifier.height(28.dp))
-            Text(text = errorMessage.value?: "", color = MaterialTheme.colorScheme.error)
+            errorMessage?.let { Text(text = it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
 
             Button(
                 onClick = viewModel::onSignUpClick,
                 modifier = Modifier
-                    .height(48.dp),
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp),
 //                shape = androidx.compose.foundation.shape.RoundedCornerShape(30.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Orange
+                    containerColor = MaterialTheme.colorScheme.primary
                 )
             ) {
                 Box {
-                    AnimatedContent(targetState = loading.value,
+                    AnimatedContent(targetState = loading,
                         transitionSpec = {
                             fadeIn(animationSpec = tween (300))+ scaleIn(initialScale = 0.8f) togetherWith
                                     fadeOut(animationSpec = tween (300))+ scaleOut(targetScale = 0.8f)
@@ -235,7 +218,7 @@ fun SignUpScreen(navController: NavController,viewModel: SignUpViewModel= hiltVi
                     append("Already have an account? ")
                     withStyle(
                         SpanStyle(
-                            color = Orange,
+                            color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.SemiBold
                         )
                     ) {

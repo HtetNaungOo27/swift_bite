@@ -1,4 +1,12 @@
 package com.example.foodhub_android.data.models
 
-data class PlaceOrderRequest(val addressId: String, val paymentMethod: String = "COD")
+data class PlaceOrderRequest(
+    val addressId: String,
+    val paymentMethod: String = "COD",
+    val idempotencyKey: String,
+    val specialInstructions: String? = null,
+    val riderInstructions: String? = null,
+    val fulfillmentType: String = "DELIVERY",
+    val scheduledFor: String? = null
+)
 data class PlaceOrderResponse(val id: String, val message: String)

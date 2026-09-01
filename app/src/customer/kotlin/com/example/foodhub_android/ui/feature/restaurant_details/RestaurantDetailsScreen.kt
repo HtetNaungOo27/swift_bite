@@ -13,14 +13,19 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -48,6 +53,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.FilterChip
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -71,6 +77,7 @@ fun SharedTransitionScope.RestaurantDetailScreen(
     name: String,
     imageUrl: String,
     restaurantID: String,
+    isOpen: Boolean,
     animatedVisibilityScope: AnimatedVisibilityScope,
     viewModel: RestaurantViewModel = hiltViewModel(),
 ) {
@@ -84,6 +91,7 @@ fun SharedTransitionScope.RestaurantDetailScreen(
     val reviews = viewModel.reviews.collectAsState()
     val savingReview = viewModel.reviewSaving.collectAsState()
     var showReviews by remember { mutableStateOf(false) }
+    var dietaryFilter by remember { mutableStateOf<String?>(null) }
     LazyVerticalGrid(GridCells.Fixed(2), modifier = Modifier.fillMaxSize()) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             RestaurantDetailHeader(
@@ -93,6 +101,17 @@ fun SharedTransitionScope.RestaurantDetailScreen(
                 onFavoriteButton = { viewModel.toggleFavorite(restaurantID) },
                 isFavorite = isFavorite.value,
             )
+        }
+        if (!isOpen) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                androidx.compose.material3.Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    shape = MaterialTheme.shapes.large,
+                    modifier = Modifier.fillMaxWidth().padding(16.dp)
+                ) {
+                    Text("Currently closed · Ordering is temporarily unavailable", Modifier.padding(16.dp), color = MaterialTheme.colorScheme.onErrorContainer)
+                }
+            }
         }
         item(span = { GridItemSpan(maxLineSpan) }) {
             RestaurantDetails(
@@ -118,25 +137,27 @@ fun SharedTransitionScope.RestaurantDetailScreen(
                 }
             }
             is RestaurantViewModel.RestaurantEvent.Success -> {
-                val foodItems =
-                    (uiState.value as RestaurantViewModel.RestaurantEvent.Success).foodItems
+                val allFoodItems = (uiState.value as RestaurantViewModel.RestaurantEvent.Success).foodItems
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    androidx.compose.foundation.lazy.LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        item { FilterChip(selected = dietaryFilter == null, onClick = { dietaryFilter = null }, label = { Text("All") }) }
+                        items(listOf("VEGETARIAN", "VEGAN", "HALAL", "GLUTEN_FREE", "SPICY")) { tag ->
+                            FilterChip(selected = dietaryFilter == tag, onClick = { dietaryFilter = if (dietaryFilter == tag) null else tag }, label = { Text(tag.replace('_', ' ').lowercase().replaceFirstChar(Char::uppercase)) })
+                        }
+                    }
+                }
+                val foodItems = allFoodItems.filter { dietaryFilter == null || dietaryFilter in it.dietaryTags }
                 if (foodItems.isNotEmpty()) {
                     items(foodItems) { foodItem ->
                         FoodItemView(foodItem = foodItem,
                             animatedVisibilityScope = animatedVisibilityScope) {
-                            navController.navigate(
-                                FoodDetails(foodItem)
-                            )
+                            if (isOpen) navController.navigate(FoodDetails(foodItem))
                         }
                     }
-                }
-             else{
-                    item(span = { GridItemSpan(maxLineSpan) }) {
-                        Text(text = "No Food Items")
-
-                    }
-
-                }
+                } else item(span = { GridItemSpan(maxLineSpan) }) { Text("No menu items match this dietary filter", Modifier.padding(24.dp), color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
             is RestaurantViewModel.RestaurantEvent.Error ->{
                 item(span = { GridItemSpan(maxLineSpan) }) {
@@ -216,9 +237,10 @@ private fun ReviewSheet(
     var rating by remember { mutableIntStateOf(5) }
     var comment by remember { mutableStateOf("") }
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(1),
-            modifier = Modifier.fillMaxWidth().height(520.dp).padding(horizontal = 20.dp)
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth().fillMaxHeight(.88f).imePadding(),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
                 Column {
@@ -289,7 +311,7 @@ fun RestaurantDetailHeader(
                 .size(48.dp)
                 .align(Alignment.TopStart)
         ) {
-            Image(painter = painterResource(id = R.drawable.back), contentDescription = null)
+            Image(painter = painterResource(id = R.drawable.back), contentDescription = "Navigate back")
         }
         IconButton(
             onClick = onFavoriteButton, modifier = Modifier
@@ -316,12 +338,12 @@ fun SharedTransitionScope.FoodItemView(foodItem: FoodItem,animatedVisibilityScop
         modifier = Modifier
             .padding(8.dp)
             .width(162.dp)
-            .height(216.dp)
+            .height(210.dp)
             .shadow(
-                elevation = 16.dp,
+                elevation = 3.dp,
                 shape = RoundedCornerShape(16.dp),
-                ambientColor = Color.Gray.copy(alpha = 0.8f),
-                spotColor = Color.Gray.copy(alpha = 0.8f)
+                ambientColor = Color.Gray.copy(alpha = 0.25f),
+                spotColor = Color.Gray.copy(alpha = 0.25f)
             )
             .background(MaterialTheme.colorScheme.surface)
             .clickable{ onClick.invoke(foodItem) }
@@ -339,43 +361,37 @@ fun SharedTransitionScope.FoodItemView(foodItem: FoodItem,animatedVisibilityScop
                         sharedContentState = rememberSharedContentState(key = "image/${foodItem.id}"),
                         animatedVisibilityScope = animatedVisibilityScope
                     ),
-                contentScale = ContentScale.FillWidth,
+                contentScale = ContentScale.Crop,
             )
             Text(
-                text = "$${foodItem.price}", style = MaterialTheme.typography.bodySmall,
+                text = com.example.foodhub_android.utils.StringUtils.formatCurrency(foodItem.price), style = MaterialTheme.typography.labelMedium,
                 modifier = Modifier
                     .padding(8.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colorScheme.surface)
-                    .padding(horizontal = 16.dp)
+                    .padding(horizontal = 10.dp, vertical = 4.dp)
                     .align(Alignment.TopStart)
-            )
-            Image(
-                painter = painterResource(id = R.drawable.favorite),
-                contentDescription = null,
-                modifier = Modifier
-                    .size(28.dp)
-                    .clip(CircleShape)
-                    .align(Alignment.TopEnd)
             )
         }
 
 
         Column(
             modifier = Modifier
-                .padding(vertical = 8.dp)
+                .padding(horizontal = 10.dp, vertical = 8.dp)
                 .fillMaxWidth()
         ) {
             Text(
                 text = foodItem.name,
                 style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
             )
             Text(
                 text = foodItem.description,
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.Gray,
                 maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 modifier = Modifier.sharedElement(
                     sharedContentState = rememberSharedContentState(key = "title/${foodItem.id}"),
                     animatedVisibilityScope = animatedVisibilityScope

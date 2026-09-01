@@ -41,12 +41,14 @@ Restart the backend once after pulling the project. The presentation seeder is i
 ### 3. Rider delivery
 
 1. Open SwiftBite Rider.
-2. Refresh available jobs.
-3. Show distance, pickup/drop-off and earning estimate.
-4. Accept the order.
-5. Open Active Deliveries.
-6. Use the bottom action to mark it picked up.
-7. Mark it delivered.
+2. Go online and allow location access. While Jobs remains visible, SwiftBite publishes a fresh foreground location every 30 seconds.
+3. Refresh available jobs.
+4. Show distance, pickup/drop-off and earning estimate.
+5. Accept the order.
+6. Open Active Deliveries.
+7. Use the bottom action to mark it picked up.
+8. For COD, enter the exact cash received and confirm the amount due.
+9. Mark it delivered; the terminal state prevents a second completion.
 
 ### 4. Customer completion
 

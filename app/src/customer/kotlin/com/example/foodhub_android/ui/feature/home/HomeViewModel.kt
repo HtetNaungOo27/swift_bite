@@ -23,13 +23,24 @@ class HomeViewModel @Inject constructor(private val foodApi: FoodApi): ViewModel
 
     private val _navigationEvent = MutableSharedFlow<HomeScreenNavigationEvent>()
     val navigationEvent = _navigationEvent.asSharedFlow()
+    private val _locationLabel = MutableStateFlow("Yangon")
+    val locationLabel = _locationLabel.asStateFlow()
 
     var categories = emptyList<Category>()
     var restaurants = emptyList<Restaurant>()
     init{
         viewModelScope.launch {
             categories = getCategories()
-            restaurants = getPopularRestaurants()
+            val savedAddress = when (val response = safeApiCall { foodApi.getUserAddress() }) {
+                is ApiResponse.Success -> response.data.addresses.firstOrNull { address ->
+                    address.city.contains("Yangon", true) && address.latitude != null && address.longitude != null
+                }
+                else -> null
+            }
+            val latitude = savedAddress?.latitude ?: YANGON_LATITUDE
+            val longitude = savedAddress?.longitude ?: YANGON_LONGITUDE
+            _locationLabel.value = savedAddress?.let { it.addressLine1.ifBlank { "Yangon" } } ?: "Yangon"
+            restaurants = getPopularRestaurants(latitude, longitude)
 
             if( categories.isNotEmpty() && restaurants.isNotEmpty()){
                 _uiState.value = HomeScreenState.Success
@@ -55,10 +66,13 @@ class HomeViewModel @Inject constructor(private val foodApi: FoodApi): ViewModel
         return list
     }
 
-    suspend fun getPopularRestaurants(): List<Restaurant>{
+    suspend fun getPopularRestaurants(
+        latitude: Double = YANGON_LATITUDE,
+        longitude: Double = YANGON_LONGITUDE
+    ): List<Restaurant>{
         var list = emptyList<Restaurant>()
         val response = safeApiCall {
-            foodApi.getRestaurants(40.712,-74.0060)
+            foodApi.getRestaurants(latitude, longitude)
         }
         when(response){
             is ApiResponse.Success -> {
@@ -71,13 +85,44 @@ class HomeViewModel @Inject constructor(private val foodApi: FoodApi): ViewModel
 
     }
 
+    fun updateLocation(latitude: Double, longitude: Double) {
+        if (!isYangon(latitude, longitude)) {
+            useYangonFallback("Yangon · device location is outside the service area")
+            return
+        }
+        viewModelScope.launch {
+            _uiState.value = HomeScreenState.Loading
+            restaurants = getPopularRestaurants(latitude, longitude)
+            _locationLabel.value = "Current location · Yangon"
+            if (restaurants.isEmpty()) {
+                restaurants = getPopularRestaurants(YANGON_LATITUDE, YANGON_LONGITUDE)
+                _locationLabel.value = "Yangon"
+            }
+            _uiState.value = if (categories.isNotEmpty() && restaurants.isNotEmpty()) {
+                HomeScreenState.Success
+            } else {
+                HomeScreenState.Empty
+            }
+        }
+    }
+
+    fun useYangonFallback(label: String = "Yangon") {
+        viewModelScope.launch {
+            _uiState.value = HomeScreenState.Loading
+            _locationLabel.value = label
+            restaurants = getPopularRestaurants(YANGON_LATITUDE, YANGON_LONGITUDE)
+            _uiState.value = if (categories.isNotEmpty() && restaurants.isNotEmpty()) HomeScreenState.Success else HomeScreenState.Empty
+        }
+    }
+
     fun onRestaurantSelected(it: Restaurant) {
         viewModelScope.launch {
             _navigationEvent.emit(
                 HomeScreenNavigationEvent.NavigateToDetail(
                     it.name,
                     it.imageUrl,
-                    it.id
+                    it.id,
+                    it.isOpen
                 )
             )
         }
@@ -90,7 +135,13 @@ class HomeViewModel @Inject constructor(private val foodApi: FoodApi): ViewModel
     }
 
     sealed class HomeScreenNavigationEvent {
-        data class NavigateToDetail(val name:String,val imageUrl:String,val id:String) : HomeScreenNavigationEvent()
+        data class NavigateToDetail(val name:String,val imageUrl:String,val id:String,val isOpen:Boolean) : HomeScreenNavigationEvent()
 
+    }
+
+    private companion object {
+        const val YANGON_LATITUDE = 16.8409
+        const val YANGON_LONGITUDE = 96.1735
+        fun isYangon(latitude: Double, longitude: Double) = latitude in 16.45..17.20 && longitude in 95.75..96.55
     }
 }

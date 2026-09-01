@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -27,6 +28,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -55,10 +58,18 @@ import com.stripe.android.paymentsheet.PaymentSheet
 import com.stripe.android.paymentsheet.PaymentSheetResult
 import com.stripe.android.paymentsheet.rememberPaymentSheet
 import kotlinx.coroutines.flow.collectLatest
+import com.example.foodhub_android.ui.components.FoodHubHeader
+import com.example.foodhub_android.ui.components.FoodHubPage
+import com.example.foodhub_android.ui.components.StatePane
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.ShoppingCart
+import androidx.compose.material.icons.rounded.LocationOn
+import androidx.compose.material.icons.rounded.ChevronRight
 
 @Composable
 fun CartScreen(navController: NavController, viewModel: CartViewModel){
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
+    val fulfillmentType = viewModel.fulfillmentType.collectAsStateWithLifecycle()
     val showErrorDialog = remember {
         mutableStateOf(false)
     }
@@ -127,31 +138,20 @@ fun CartScreen(navController: NavController, viewModel: CartViewModel){
         }
     }
 
-    Column(modifier = Modifier
-        .fillMaxWidth()
-        .padding(horizontal = 16.dp)) {
-        CartHeaderView (onBack = { navController.popBackStack()})
-        Spacer(modifier = Modifier.size(16.dp))
+    FoodHubPage {
+        FoodHubHeader("Your cart", "Review items and choose delivery", onBack = navController::popBackStack)
         when (uiState.value) {
             is CartViewModel.CartUiState.Loading -> {
-                Spacer(modifier = Modifier.size(16.dp))
-                Column(modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Spacer(modifier = Modifier.size(16.dp))
-                    CircularProgressIndicator()
-                    Text(
-                        text = "Loading...",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray
-                    )
-                }
+                StatePane("Preparing your cart", "Checking prices and quantities", loading = true)
             }
             is CartViewModel.CartUiState.Success -> {
                 val data = (uiState.value as CartViewModel.CartUiState.Success).data
                 if (data.items.size>0){
-                LazyColumn {
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 20.dp, vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     items(data.items) {
                         CartItemView(cartItem = it, onIncrement = { cartItem, quantity ->
                             viewModel.incrementQuantity(cartItem)
@@ -162,41 +162,18 @@ fun CartScreen(navController: NavController, viewModel: CartViewModel){
                         })
                     }
                     item {
-                        CheckoutDetailsView(data.checkoutDetails)
+                        CheckoutDetailsView(data.checkoutDetails, fulfillmentType.value)
                     }
                 }
             }else{
 
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_cart),
-                        contentDescription = null,
-                        tint = Color.Gray
-                    )
-                    Text(
-                        text = "Your cart is looking a bit hungry. Let’s fix that!",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray
-                    )
-                }
+                StatePane("Your cart is hungry", "Explore nearby restaurants and add something delicious.", Icons.Rounded.ShoppingCart)
 
                 }
             }
             is CartViewModel.CartUiState.Error -> {
-                Column(Modifier.fillMaxWidth(),
-                    horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
-                    verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
-                ) {
-                    val message = (uiState.value as CartViewModel.CartUiState.Error).message
-                    Text(text = message, style = MaterialTheme.typography.bodyMedium)
-                    Button(onClick = { /*TOdO*/}) {
-                        Text(text = "Retry")
-                    }
-                }
+                val message = (uiState.value as CartViewModel.CartUiState.Error).message
+                StatePane("Couldn’t load your cart", message, Icons.Rounded.Refresh, actionLabel = "Try again", onAction = viewModel::getCart)
 
             }
 
@@ -204,11 +181,62 @@ fun CartScreen(navController: NavController, viewModel: CartViewModel){
         }
 
             val selectedAddress = viewModel.selectedAddress.collectAsStateWithLifecycle()
-            Spacer(modifier = Modifier.weight(1f))
-            if (uiState.value is CartViewModel.CartUiState.Success) {
-                AddressCard(selectedAddress.value ) {
+            val specialInstructions = viewModel.specialInstructions.collectAsStateWithLifecycle()
+            val riderInstructions = viewModel.riderInstructions.collectAsStateWithLifecycle()
+            val scheduledFor = viewModel.scheduledFor.collectAsStateWithLifecycle()
+            if (uiState.value is CartViewModel.CartUiState.Success && (uiState.value as CartViewModel.CartUiState.Success).data.items.isNotEmpty()) {
+                Column(Modifier.padding(horizontal = 20.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                Text("How would you like your order?", style = MaterialTheme.typography.titleMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = fulfillmentType.value == "DELIVERY",
+                        onClick = { viewModel.setFulfillmentType("DELIVERY") },
+                        label = { Text("Delivery") }
+                    )
+                    FilterChip(
+                        selected = fulfillmentType.value == "PICKUP",
+                        onClick = { viewModel.setFulfillmentType("PICKUP") },
+                        label = { Text("Customer pickup") }
+                    )
+                }
+                Text("When?", style = MaterialTheme.typography.titleMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FilterChip(selected = scheduledFor.value == null, onClick = viewModel::scheduleNow, label = { Text("Now") })
+                    FilterChip(
+                        selected = scheduledFor.value?.contains("T12:00") == false,
+                        onClick = viewModel::scheduleInOneHour,
+                        label = { Text("In 1 hour") }
+                    )
+                    FilterChip(
+                        selected = scheduledFor.value?.contains("T12:00") == true,
+                        onClick = viewModel::scheduleTomorrowLunch,
+                        label = { Text("Tomorrow 12:00") }
+                    )
+                }
+                val isPickup = fulfillmentType.value == "PICKUP"
+                if (!isPickup) AddressCard(selectedAddress.value ) {
                     viewModel.onAddressClicked()
                 }
+                OutlinedTextField(
+                    value = specialInstructions.value,
+                    onValueChange = viewModel::onSpecialInstructionsChanged,
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Preparation instructions") },
+                    placeholder = { Text("Example: less spicy, no peanuts") },
+                    supportingText = { Text("Optional · ${specialInstructions.value.length}/500") },
+                    minLines = 2,
+                    maxLines = 3
+                )
+                if (!isPickup) OutlinedTextField(
+                    value = riderInstructions.value,
+                    onValueChange = viewModel::onRiderInstructionsChanged,
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Delivery instructions") },
+                    placeholder = { Text("Example: call at the gate, third floor") },
+                    supportingText = { Text("Shown only to the rider · ${riderInstructions.value.length}/500") },
+                    minLines = 2,
+                    maxLines = 3
+                )
 
                 Button(
                     onClick = {viewModel.checkout()},
@@ -221,7 +249,9 @@ fun CartScreen(navController: NavController, viewModel: CartViewModel){
                     onClick = viewModel::checkoutWithCash,
                     modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp),
                     enabled = selectedAddress.value != null
-                ) { Text("Cash on delivery") }
+                ) { Text(if (isPickup) "Pay at restaurant" else "Cash on delivery") }
+                Spacer(Modifier.navigationBarsPadding())
+                }
             }
         }
     if (showErrorDialog.value) {
@@ -245,21 +275,19 @@ fun CartScreen(navController: NavController, viewModel: CartViewModel){
 
 @Composable
 fun AddressCard(address: Address?, onAddressClicked: () -> Unit ) {
-    Box(
+    androidx.compose.material3.ElevatedCard(
+        onClick = onAddressClicked,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp)
-            .shadow(8.dp)
-            .clip(
-                RoundedCornerShape(8.dp)
-            )
-            .background(MaterialTheme.colorScheme.surface)
-            .clickable{ onAddressClicked.invoke() }
-            .padding(16.dp)
-
-    ){
+            .padding(vertical = 2.dp),
+        shape = MaterialTheme.shapes.large
+    ) {
+        Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Rounded.LocationOn, null, tint = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.size(12.dp))
     if (address != null) {
-        Column {
+        Column(Modifier.weight(1f)) {
+            Text("Deliver to", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(text = address.addressLine1 , style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.size(4.dp))
             Text(
@@ -271,18 +299,25 @@ fun AddressCard(address: Address?, onAddressClicked: () -> Unit ) {
             address.plusCode?.takeIf { it.isNotBlank() }?.let { Text("Plus code: $it", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }
         }
     }else{
-        Text(text = "Select Address", style = MaterialTheme.typography.bodyMedium)
+        Column(Modifier.weight(1f)) {
+            Text("Delivery address", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(text = "Choose an address", style = MaterialTheme.typography.titleMedium)
+        }
     }
-
+            Icon(Icons.Rounded.ChevronRight, "Change address", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
 }
 }
 @Composable
-fun CheckoutDetailsView(checkoutDetails: CheckoutDetails) {
+fun CheckoutDetailsView(checkoutDetails: CheckoutDetails, fulfillmentType: String) {
+    val pickup = fulfillmentType == "PICKUP"
+    val deliveryFee = if (pickup) 0.0 else checkoutDetails.deliveryFee
+    val total = if (pickup) checkoutDetails.totalAmount - checkoutDetails.deliveryFee else checkoutDetails.totalAmount
     Column {
-       CheckoutRowItem(title = "SubTotal", value = checkoutDetails.subTotal, currency = "USD")
-        CheckoutRowItem(title = "Tax", value = checkoutDetails.tax, currency = "USD")
-        CheckoutRowItem(title = "Delivery Fee", value = checkoutDetails.deliveryFee, currency = "USD")
-        CheckoutRowItem(title = "Total", value = checkoutDetails.totalAmount, currency = "USD")
+       CheckoutRowItem(title = "Subtotal", value = checkoutDetails.subTotal, currency = "MMK")
+        CheckoutRowItem(title = "Tax", value = checkoutDetails.tax, currency = "MMK")
+        CheckoutRowItem(title = "Delivery fee", value = deliveryFee, currency = "MMK")
+        CheckoutRowItem(title = "Total", value = total, currency = "MMK")
     }
 }
 @Composable
@@ -294,7 +329,7 @@ fun CheckoutRowItem(title: String, value: Double, currency: String) {
             Text(text = title, style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.weight(1f))
                     Text(text = StringUtils.formatCurrency(value), style = MaterialTheme.typography.titleMedium )
-            Text(text = currency, style = MaterialTheme.typography.titleMedium, color = androidx.compose.ui.graphics.Color.LightGray)
+            Text(text = " $currency", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
         VerticalDivider()
 
@@ -330,16 +365,17 @@ fun CartItemView(
                             modifier = Modifier.size(24.dp)){
                     Icon(
                         imageVector = Icons.Filled.Close,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
+                        contentDescription = "Remove ${cartItem.menuItemId.name} from cart",
+                        tint = MaterialTheme.colorScheme.error
                     )
                 }
             }
-            Text(text = cartItem.menuItemId.description, maxLines = 1, color = Color.Gray, style = MaterialTheme.typography.bodySmall)
+            if (cartItem.selectedModifiers.isNotEmpty()) Text(cartItem.selectedModifiers.joinToString(" · ") { "${it.group}: ${it.option}" }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(text = cartItem.menuItemId.description, maxLines = 1, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
             Spacer(modifier = Modifier.size(8.dp))
             Row {
                 Text(
-                    text = "$${cartItem.menuItemId.price}",
+                    text = StringUtils.formatCurrency(cartItem.menuItemId.price),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -357,17 +393,3 @@ fun CartItemView(
     }
 
     }
-
-@Composable
-fun CartHeaderView(onBack: () -> Unit) {
-
-    Row(modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween)
-    {
-        IconButton(onClick = onBack) {
-            Image(painter = painterResource(id = R.drawable.back), contentDescription = null)
-        }
-        Text(text = "Cart", style = MaterialTheme.typography.titleMedium)
-        Spacer(modifier = Modifier.size(8.dp))
-    }
-}

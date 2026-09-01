@@ -76,7 +76,7 @@ fun SharedTransitionScope.FoodItemView(
                 contentScale = ContentScale.Crop,
             )
             Text(
-                text = "$${footItem.price}",
+                text = com.example.foodhub_android.utils.StringUtils.formatCurrency(footItem.price),
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier
                     .padding(8.dp)

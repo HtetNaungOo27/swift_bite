@@ -5,5 +5,12 @@ data class RiderWallet(
     val deliveryEarnings: Double,
     val cashCollected: Double,
     val amountToSettle: Double,
-    val lastSettlementMessage: String
+    val lastSettlementMessage: String,
+    val settlements: List<RiderSettlement> = emptyList()
+)
+
+data class RiderSettlement(
+    val id: String,
+    val amount: Double,
+    val createdAt: String
 )

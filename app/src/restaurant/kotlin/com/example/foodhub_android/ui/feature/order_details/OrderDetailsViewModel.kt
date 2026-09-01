@@ -33,7 +33,7 @@ class OrderDetailsViewModel @Inject constructor(val foodApi: FoodApi) : ViewMode
     fun getOrderDetails(orderID: String) {
         viewModelScope.launch {
             _uiState.value = OrderDetailsUiState.Loading
-            val result = safeApiCall { foodApi.getOrderDetails(orderID) }
+            val result = safeApiCall { foodApi.getRestaurantOrderDetails(orderID) }
             when (result) {
                 is ApiResponse.Success -> {
                     _uiState.value = OrderDetailsUiState.Success(result.data)
@@ -51,11 +51,16 @@ class OrderDetailsViewModel @Inject constructor(val foodApi: FoodApi) : ViewMode
         }
     }
 
-    fun updateOrderStatus(orderID: String, status: String) {
+    fun updateOrderStatus(orderID: String, status: String, preparationMinutes: Int? = null) {
         viewModelScope.launch {
             _updating.value = true
             val result =
-                safeApiCall { foodApi.updateOrderStatus(orderID, mapOf("status" to status)) }
+                safeApiCall {
+                    foodApi.updateOrderStatus(
+                        orderID,
+                        com.example.foodhub_android.data.models.UpdateOrderStatusRequest(status, preparationMinutes)
+                    )
+                }
             when (result) {
                 is ApiResponse.Success -> {
                     _event.emit(OrderDetailsEvent.ShowPopUp("Order Status updated"))
@@ -70,10 +75,35 @@ class OrderDetailsViewModel @Inject constructor(val foodApi: FoodApi) : ViewMode
         }
     }
 
-    fun nextStatuses(current: String): List<String> = when (current.uppercase()) {
+    fun rejectOrder(orderID: String, reason: String) {
+        if (reason.isBlank()) {
+            viewModelScope.launch { _event.emit(OrderDetailsEvent.ShowPopUp("Choose or enter a rejection reason")) }
+            return
+        }
+        viewModelScope.launch {
+            _updating.value = true
+            when (val result = safeApiCall {
+                foodApi.performRestaurantOrderAction(
+                    orderID,
+                    com.example.foodhub_android.data.models.OrderActionRequest("REJECT", reason.trim())
+                )
+            }) {
+                is ApiResponse.Success -> {
+                    _event.emit(OrderDetailsEvent.ShowPopUp("Order rejected"))
+                    getOrderDetails(orderID)
+                }
+                is ApiResponse.Error -> _event.emit(OrderDetailsEvent.ShowPopUp(result.message ?: "Couldn’t reject order"))
+                is ApiResponse.Exception -> _event.emit(OrderDetailsEvent.ShowPopUp("Couldn’t connect to the server"))
+            }
+            _updating.value = false
+        }
+    }
+
+    fun nextStatuses(order: Order): List<String> = when (order.status.uppercase()) {
         OrdersUtils.OrderStatus.PENDING_ACCEPTANCE.name -> listOf(OrdersUtils.OrderStatus.ACCEPTED.name)
         OrdersUtils.OrderStatus.ACCEPTED.name -> listOf(OrdersUtils.OrderStatus.PREPARING.name)
         OrdersUtils.OrderStatus.PREPARING.name -> listOf(OrdersUtils.OrderStatus.READY.name)
+        OrdersUtils.OrderStatus.READY.name -> if (order.fulfillmentType == "PICKUP") listOf("DELIVERED") else emptyList()
         else -> emptyList()
     }
 

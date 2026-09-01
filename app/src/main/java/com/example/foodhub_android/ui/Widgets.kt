@@ -177,10 +177,7 @@ fun FoodHubTextField(
     minLines: Int = 1,
     interactionSource: MutableInteractionSource? = null,
     shape: Shape = RoundedCornerShape(10.dp),
-    colors: TextFieldColors = OutlinedTextFieldDefaults.colors().copy(
-        focusedIndicatorColor = Orange,
-        unfocusedIndicatorColor = Color.LightGray.copy(0.4f)
-    ),
+    colors: TextFieldColors? = null,
 ){
     Column(Modifier.padding(vertical = 8.dp)){
         label?. let {
@@ -213,7 +210,12 @@ fun FoodHubTextField(
             minLines,
             interactionSource,
             shape,
-            colors,
+            colors ?: OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = androidx.compose.material3.MaterialTheme.colorScheme.primary,
+                focusedLabelColor = androidx.compose.material3.MaterialTheme.colorScheme.primary,
+                cursorColor = androidx.compose.material3.MaterialTheme.colorScheme.primary,
+                errorBorderColor = androidx.compose.material3.MaterialTheme.colorScheme.error
+            ),
         )
     }
 }

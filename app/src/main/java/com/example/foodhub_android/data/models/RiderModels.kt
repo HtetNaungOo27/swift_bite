@@ -26,7 +26,11 @@ data class RiderDelivery(
     val estimatedEarning: Double,
     val createdAt: String,
     val updatedAt: String,
-    val paymentMethod: String = "CARD"
+    val paymentMethod: String = "CARD",
+    // Older servers do not send this yet, so the Rider UI safely derives it.
+    val paymentStatus: String? = null,
+    val riderInstructions: String? = null,
+    val preparationMinutes: Int? = null
 )
 
 data class RiderRestaurant(
@@ -54,10 +58,13 @@ data class RiderOrderItem(
     val id: String,
     val name: String,
     val quantity: Int,
-    val price: Double
+    val price: Double,
+    val selectedModifiers: List<SelectedModifier> = emptyList()
 )
 
 data class DeliveryStatusUpdate(
     val status: String,
-    val reason: String? = null
+    val reason: String? = null,
+    val cashReceived: Double? = null,
+    val deliveryOtp: String? = null
 )

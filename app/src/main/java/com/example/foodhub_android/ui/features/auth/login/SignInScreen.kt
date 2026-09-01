@@ -19,6 +19,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.Surface
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
@@ -54,6 +58,8 @@ import com.example.foodhub_android.ui.navigation.AuthScreen
 import com.example.foodhub_android.ui.navigation.Home
 import com.example.foodhub_android.ui.navigation.Login
 import com.example.foodhub_android.ui.navigation.SignUp
+import com.example.foodhub_android.ui.navigation.OrderDetails
+import com.example.foodhub_android.ui.navigation.RiderOrderDetails
 import kotlinx.coroutines.flow.collectLatest
 
 
@@ -66,29 +72,18 @@ fun SignInScreen(navController: NavController,isCustomer: Boolean = true,viewMod
 
         val email = viewModel.email.collectAsStateWithLifecycle()
         val password = viewModel.password.collectAsStateWithLifecycle()
-        val errorMessage = remember { mutableStateOf<String?>(null) }
-        val loading = remember { mutableStateOf(false) }
+        val validation by viewModel.validation.collectAsStateWithLifecycle()
         var passwordVisible by rememberSaveable { mutableStateOf(false) }
+        var showReset by rememberSaveable { mutableStateOf(false) }
+        var resetEmail by rememberSaveable { mutableStateOf("") }
+        var resetCode by rememberSaveable { mutableStateOf("") }
+        var newPassword by rememberSaveable { mutableStateOf("") }
+        var codeRequested by rememberSaveable { mutableStateOf(false) }
+        val resetState by viewModel.resetState.collectAsStateWithLifecycle()
 
-        val uiState = viewModel.uiState.collectAsState()
-        when (uiState.value) {
-
-            is SignInViewModel.SignInEvent.Error -> {
-                // show error
-                loading.value = false
-                errorMessage.value = "Failed"
-            }
-
-            is SignInViewModel.SignInEvent.Loading -> {
-                loading.value = true
-                errorMessage.value = null
-            }
-
-            else -> {
-                loading.value = false
-                errorMessage.value = null
-            }
-        }
+        val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+        val loading = uiState is SignInViewModel.SignInEvent.Loading
+        val errorMessage = if (uiState is SignInViewModel.SignInEvent.Error) "Email or password is incorrect. Please try again." else null
 
         val context = LocalContext.current
         val roleLabel = when {
@@ -105,6 +100,13 @@ fun SignInScreen(navController: NavController,isCustomer: Boolean = true,viewMod
                                 inclusive = true
                             }
                         }
+                        event.pendingOrderId?.let { orderId ->
+                            if (navController.context.packageName.endsWith(".rider")) {
+                                navController.navigate(RiderOrderDetails(orderId)) { launchSingleTop = true }
+                            } else {
+                                navController.navigate(OrderDetails(orderId)) { launchSingleTop = true }
+                            }
+                        }
                     }
 
                     is SignInViewModel.SignInNavigationEvent.NavigateToSignUp -> {
@@ -118,40 +120,51 @@ fun SignInScreen(navController: NavController,isCustomer: Boolean = true,viewMod
             }
 
         }
-        Image(
-            painter = painterResource(R.drawable.ic_auth_bg),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.FillBounds,
-            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
-        )
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .navigationBarsPadding()
-                .padding(horizontal = 28.dp),
+                .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Space reserved for the decorative circles
-            Spacer(modifier = Modifier.height(104.dp))
+            Spacer(modifier = Modifier.height(44.dp))
+
+            Surface(
+                color = MaterialTheme.colorScheme.primaryContainer,
+                shape = MaterialTheme.shapes.large
+            ) {
+                Text(
+                    "SWIFTBITE",
+                    Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            Spacer(modifier = Modifier.height(28.dp))
 
             Text(
-                text = stringResource(R.string.sign_in),
+                text = "Welcome back",
                 modifier = Modifier.fillMaxWidth(),
                 color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 30.sp,
-                fontWeight = FontWeight.Bold
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
             )
             Text(
-                text = roleLabel,
+                text = when (roleLabel) {
+                    "RESTAURANT PORTAL" -> "Sign in to manage your restaurant"
+                    "RIDER PORTAL" -> "Sign in to view deliveries and earnings"
+                    else -> "Sign in to order from restaurants near you"
+                },
                 modifier = Modifier.fillMaxWidth(),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(30.dp))
 
             FoodHubTextField(
                 value = email.value,
@@ -159,10 +172,12 @@ fun SignInScreen(navController: NavController,isCustomer: Boolean = true,viewMod
                 label = {
                     Text(
                         text = stringResource(R.string.email),
-                        color = Color(0xFF9B9BA8)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
                 modifier = Modifier.fillMaxWidth()
+                ,isError = validation.email != null,
+                supportingText = { Text(validation.email ?: " ") }
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -173,10 +188,12 @@ fun SignInScreen(navController: NavController,isCustomer: Boolean = true,viewMod
                 label = {
                     Text(
                         text = stringResource(R.string.password),
-                        color = Color(0xFF9B9BA8)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
                 modifier = Modifier.fillMaxWidth(),
+                isError = validation.password != null,
+                supportingText = { Text(validation.password ?: " ") },
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
@@ -189,21 +206,25 @@ fun SignInScreen(navController: NavController,isCustomer: Boolean = true,viewMod
                 }
             )
 
-            Spacer(modifier = Modifier.height(28.dp))
-            Text(text = errorMessage.value ?: "", color = MaterialTheme.colorScheme.error)
+            Spacer(modifier = Modifier.height(8.dp))
+            TextButton(
+                onClick = { resetEmail = email.value; showReset = true },
+                modifier = Modifier.align(Alignment.End)
+            ) { Text("Forgot password?") }
+            errorMessage?.let { Text(text = it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
 
             Button(
                 onClick = viewModel::onSignInClick,
                 modifier = Modifier
-                    .height(48.dp),
-//                shape = androidx.compose.foundation.shape.RoundedCornerShape(30.dp),
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 )
             ) {
                 Box {
                     AnimatedContent(
-                        targetState = loading.value,
+                        targetState = loading,
                         transitionSpec = {
                             fadeIn(animationSpec = tween(300)) + scaleIn(initialScale = 0.8f) togetherWith
                                     fadeOut(animationSpec = tween(300)) + scaleOut(targetScale = 0.8f)
@@ -218,7 +239,8 @@ fun SignInScreen(navController: NavController,isCustomer: Boolean = true,viewMod
                             Text(
                                 text = stringResource(R.string.sign_in),
                                 color = Color.White,
-                                modifier = Modifier.padding(horizontal = 32.dp)
+                                modifier = Modifier.padding(horizontal = 32.dp),
+                                style = MaterialTheme.typography.titleMedium
                             )
                         }
 
@@ -252,20 +274,71 @@ fun SignInScreen(navController: NavController,isCustomer: Boolean = true,viewMod
                     textAlign = TextAlign.Center
                 )
 
-                // Push social controls toward the bottom on taller displays.
                 Spacer(
                     modifier = Modifier
                         .heightIn(min = 30.dp)
                         .weight(1f, fill = false)
                 )
 
-                val context = LocalContext.current
                 GroupSocialButtons(
                     color = MaterialTheme.colorScheme.onBackground,
                     viewModel
                 )
                 Spacer(modifier = Modifier.height(20.dp))
             }
+        }
+        if (showReset) {
+            if (resetState is SignInViewModel.PasswordResetState.CodeSent) {
+                LaunchedEffect(resetState) {
+                    codeRequested = true
+                    (resetState as SignInViewModel.PasswordResetState.CodeSent).debugCode?.let { resetCode = it }
+                }
+            }
+            if (resetState is SignInViewModel.PasswordResetState.Success) {
+                LaunchedEffect(resetState) {
+                    showReset = false
+                    codeRequested = false
+                    newPassword = ""
+                    viewModel.clearPasswordReset()
+                }
+            }
+            AlertDialog(
+                onDismissRequest = {
+                    if (resetState !is SignInViewModel.PasswordResetState.Loading) {
+                        showReset = false; codeRequested = false; viewModel.clearPasswordReset()
+                    }
+                },
+                title = { Text(if (codeRequested) "Set a new password" else "Recover your account") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(
+                            if (codeRequested) "Enter the six-digit code sent to your account. It expires in 15 minutes."
+                            else "We’ll send a single-use reset code if this account exists.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        OutlinedTextField(resetEmail, { resetEmail = it }, label = { Text("Email") }, singleLine = true, enabled = !codeRequested)
+                        if (codeRequested) {
+                            OutlinedTextField(resetCode, { resetCode = it.filter(Char::isDigit).take(6) }, label = { Text("6-digit code") }, singleLine = true)
+                            OutlinedTextField(newPassword, { newPassword = it }, label = { Text("New password") }, singleLine = true, visualTransformation = PasswordVisualTransformation())
+                        }
+                        if (resetState is SignInViewModel.PasswordResetState.Error) {
+                            Text((resetState as SignInViewModel.PasswordResetState.Error).message, color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            if (codeRequested) viewModel.confirmPasswordReset(resetEmail, resetCode, newPassword)
+                            else viewModel.requestPasswordReset(resetEmail)
+                        },
+                        enabled = resetState !is SignInViewModel.PasswordResetState.Loading
+                    ) {
+                        Text(if (codeRequested) "Update password" else "Send reset code")
+                    }
+                },
+                dismissButton = { TextButton(onClick = { showReset = false; codeRequested = false; viewModel.clearPasswordReset() }) { Text("Cancel") } }
+            )
         }
     }
 }

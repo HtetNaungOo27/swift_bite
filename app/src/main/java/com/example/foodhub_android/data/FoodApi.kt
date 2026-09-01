@@ -36,6 +36,7 @@ import com.example.foodhub_android.data.models.CustomerProfile
 import com.example.foodhub_android.data.models.PlaceOrderRequest
 import com.example.foodhub_android.data.models.PlaceOrderResponse
 import com.example.foodhub_android.data.models.RiderWallet
+import com.example.foodhub_android.data.models.UpdateRestaurantRequest
 import retrofit2.Response
 import okhttp3.MultipartBody
 import retrofit2.http.Body
@@ -50,12 +51,39 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface FoodApi {
+    @GET("/payouts") suspend fun getPayouts(): Response<com.example.foodhub_android.data.models.PayoutOverview>
+    @PUT("/payouts/account") suspend fun savePayoutAccount(@Body request: com.example.foodhub_android.data.models.SavePayoutAccountRequest): Response<GenericMsgResponse>
+    @POST("/payouts") suspend fun requestPayout(@Body request: com.example.foodhub_android.data.models.RequestPayout): Response<com.example.foodhub_android.data.models.PayoutItem>
+    @GET("/account")
+    suspend fun getAccount(): Response<com.example.foodhub_android.data.models.AccountProfile>
+
+    @PUT("/account")
+    suspend fun updateAccount(
+        @Body request: com.example.foodhub_android.data.models.UpdateAccountRequest
+    ): Response<com.example.foodhub_android.data.models.AccountProfile>
+
+    @PUT("/account/password")
+    suspend fun changePassword(
+        @Body request: com.example.foodhub_android.data.models.ChangePasswordRequest
+    ): Response<GenericMsgResponse>
 
     @POST("/orders")
     suspend fun placeOrder(@Body request: PlaceOrderRequest): Response<PlaceOrderResponse>
 
     @GET("/customer/profile")
     suspend fun getCustomerProfile(): Response<CustomerProfile>
+
+    @PUT("/customer/profile")
+    suspend fun updateCustomerProfile(@Body request: Map<String, String>): Response<GenericMsgResponse>
+
+    @GET("/customer/favorites")
+    suspend fun getFavorites(): Response<com.example.foodhub_android.data.models.FavoriteIdsResponse>
+
+    @PUT("/customer/favorites/{menuItemId}")
+    suspend fun setFavorite(
+        @Path("menuItemId") menuItemId: String,
+        @Body request: Map<String, Boolean>
+    ): Response<GenericMsgResponse>
 
     @GET("/restaurants/{id}/reviews")
     suspend fun getRestaurantReviews(@Path("id") restaurantId: String): Response<ReviewSummary>
@@ -81,6 +109,12 @@ interface FoodApi {
     @POST("auth/login")
     suspend fun signIn(@Body request: SignInRequest): Response<AuthResponse>
 
+    @POST("auth/password/forgot")
+    suspend fun requestPasswordReset(@Body request: Map<String, String>): Response<Map<String, String?>>
+
+    @POST("auth/password/reset")
+    suspend fun resetPassword(@Body request: Map<String, String>): Response<GenericMsgResponse>
+
     @POST("/auth/oauth")
     suspend fun oAuth(@Body request: OAuthRequest): Response<AuthResponse>
     @GET("restaurants/{restaurantId}/menu")
@@ -102,10 +136,16 @@ interface FoodApi {
     suspend fun getUserAddress(): Response<AddressListResponse>
 
     @POST("addresses/reverse-geocode")
-    suspend fun reverseGeocode(@Body request: ReverseGeocodeRequest): Response<AddressListResponse>
+    suspend fun reverseGeocode(@Body request: ReverseGeocodeRequest): Response<Address>
 
     @POST("/addresses")
     suspend fun storeAddress(@Body address: Address): Response<GenericMsgResponse>
+
+    @PUT("/addresses/{id}")
+    suspend fun updateAddress(@Path("id") id: String, @Body address: Address): Response<GenericMsgResponse>
+
+    @DELETE("/addresses/{id}")
+    suspend fun deleteAddress(@Path("id") id: String): Response<GenericMsgResponse>
 
     @POST("/payments/create-intent")
     suspend fun getPaymentIntent(@Body request: PaymentIntentRequest): Response<PaymentIntentResponse>
@@ -121,6 +161,21 @@ interface FoodApi {
     @GET("/orders/{orderId}")
     suspend fun getOrderDetails(@Path("orderId") orderId: String): Response<Order>
 
+    @POST("/orders/{orderId}/cancel")
+    suspend fun cancelOrder(@Path("orderId") orderId: String): Response<Order>
+
+    @POST("/orders/{orderId}/reorder")
+    suspend fun reorder(@Path("orderId") orderId: String): Response<GenericMsgResponse>
+
+    @GET("/orders/{orderId}/issue")
+    suspend fun getOrderIssue(@Path("orderId") orderId: String): Response<com.example.foodhub_android.data.models.OrderIssueResponse>
+
+    @POST("/orders/{orderId}/issue")
+    suspend fun createOrderIssue(
+        @Path("orderId") orderId: String,
+        @Body request: com.example.foodhub_android.data.models.CreateOrderIssueRequest
+    ): Response<com.example.foodhub_android.data.models.OrderIssue>
+
     @POST("/notifications/{id}/read")
     suspend fun readNotification(@Path("id") id: String): Response<GenericMsgResponse>
 
@@ -133,24 +188,46 @@ interface FoodApi {
     @GET("/restaurant-owner/profile")
     suspend fun getRestaurantProfile(): Response<com.example.foodhub_android.data.models.Restaurant>
 
+    @PUT("/restaurant-owner/profile")
+    suspend fun updateRestaurantProfile(@Body request: UpdateRestaurantRequest): Response<GenericMsgResponse>
+
+    @GET("/restaurant-owner/hours")
+    suspend fun getRestaurantHours(): Response<com.example.foodhub_android.data.models.UpdateRestaurantHoursRequest>
+
+    @PUT("/restaurant-owner/hours")
+    suspend fun updateRestaurantHours(
+        @Body request: com.example.foodhub_android.data.models.UpdateRestaurantHoursRequest
+    ): Response<GenericMsgResponse>
+
     @GET("/restaurant-owner/statistics")
     suspend fun getRestaurantStatistics(): Response<RestaurantStatistics>
 
     @GET("/restaurant-owner/orders")
     suspend fun getRestaurantOrders(@Query("status") status: String): Response<OrderListResponse>
 
+    @GET("/restaurant-owner/orders/{orderId}")
+    suspend fun getRestaurantOrderDetails(@Path("orderId") orderId: String): Response<Order>
+
     @PATCH("/restaurant-owner/orders/{orderId}/status")
     suspend fun updateOrderStatus(
         @Path("orderId") orderId: String,
-        @Body status: Map<String, String>
+        @Body status: com.example.foodhub_android.data.models.UpdateOrderStatusRequest
+    ): Response<GenericMsgResponse>
+
+    @POST("/restaurant-owner/orders/{orderId}/action")
+    suspend fun performRestaurantOrderAction(
+        @Path("orderId") orderId: String,
+        @Body request: com.example.foodhub_android.data.models.OrderActionRequest
     ): Response<GenericMsgResponse>
 
     @GET("/restaurants/{id}/menu")
     suspend fun getRestaurantMenu(@Path("id") restaurantId: String): Response<FoodItemListResponse>
 
-    @POST("/restaurants/{id}/menu")
+    @GET("/restaurant-owner/menu")
+    suspend fun getOwnerMenu(): Response<FoodItemListResponse>
+
+    @POST("/restaurant-owner/menu")
     suspend fun addRestaurantMenu(
-        @Path("id") restaurantId: String,
         @Body foodItem: FoodItem
     ): Response<GenericMsgResponse>
 
@@ -160,12 +237,26 @@ interface FoodApi {
         @Body request: com.example.foodhub_android.data.models.UpdateMenuItemRequest
     ): Response<GenericMsgResponse>
 
+    @DELETE("/restaurant-owner/menu/{itemId}")
+    suspend fun deleteRestaurantMenuItem(@Path("itemId") itemId: String): Response<GenericMsgResponse>
+
     @Multipart
     @POST("/images/upload")
     suspend fun uploadImage(@Part image: MultipartBody.Part): Response<ImageUploadResponse>
 
     @GET("/rider/deliveries/available")
     suspend fun getAvailableDeliveries(): Response<AvailableDeliveriesResponse>
+
+    @GET("/rider/availability")
+    suspend fun getRiderAvailability(): Response<Map<String, Boolean>>
+
+    @PUT("/rider/availability")
+    suspend fun setRiderAvailability(@Body request: Map<String, Boolean>): Response<GenericMsgResponse>
+
+    @POST("/rider/location")
+    suspend fun updateRiderLocation(
+        @Body request: com.example.foodhub_android.data.models.RiderLocationUpdate
+    ): Response<GenericMsgResponse>
 
     @GET("/rider/deliveries/active")
     suspend fun getActiveDeliveries(): Response<RiderDeliveriesResponse>

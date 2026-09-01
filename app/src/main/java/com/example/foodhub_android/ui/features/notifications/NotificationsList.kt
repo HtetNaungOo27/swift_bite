@@ -28,15 +28,24 @@ fun NotificationsList(navController: NavController, viewModel: NotificationsView
         viewModel.getNotifications()
         viewModel.event.collectLatest {
             if (it is NotificationsViewModel.NotificationsEvent.NavigateToOrderDetail) {
-                if (navController.context.packageName.endsWith(".rider")) navController.navigate(RiderOrderDetails(it.orderID))
-                else navController.navigate(OrderDetails(it.orderID))
+                if (navController.context.packageName.endsWith(".rider")) {
+                    navController.navigate(RiderOrderDetails(it.orderID)) {
+                        popUpTo(com.example.foodhub_android.ui.navigation.Home) { inclusive = false }
+                        launchSingleTop = true
+                    }
+                } else {
+                    navController.navigate(OrderDetails(it.orderID)) {
+                        popUpTo(com.example.foodhub_android.ui.navigation.Home) { inclusive = false }
+                        launchSingleTop = true
+                    }
+                }
             }
         }
     }
     FoodHubPage {
         FoodHubHeader("Notifications", "Order updates and important alerts")
         when (state) {
-            NotificationsViewModel.NotificationsState.Loading -> StatePane("Loading alerts", "Getting your latest updates", loading = true)
+            NotificationsViewModel.NotificationsState.Loading -> ListSkeleton()
             is NotificationsViewModel.NotificationsState.Error -> {
                 val expired = state.message.contains("session has expired", ignoreCase = true)
                 StatePane(
@@ -53,8 +62,9 @@ fun NotificationsList(navController: NavController, viewModel: NotificationsView
                 )
             }
             is NotificationsViewModel.NotificationsState.Success -> {
-                if (state.data.isEmpty()) StatePane("No notifications", "New order updates will appear here", Icons.Rounded.NotificationsNone)
+                if (state.data.isEmpty()) StatePane("You’re all caught up", "New order updates will appear here", Icons.Rounded.NotificationsNone, actionLabel = "Refresh", onAction = viewModel::getNotifications)
                 else LazyColumn(contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    state.refreshError?.let { message -> item { NetworkNotice(message, viewModel::getNotifications) } }
                     items(state.data, key = { it.id }) { NotificationItem(it) { viewModel.readNotification(it) } }
                 }
             }
@@ -65,7 +75,8 @@ fun NotificationsList(navController: NavController, viewModel: NotificationsView
 @Composable
 fun NotificationItem(notification: Notification, onRead: () -> Unit) {
     Surface(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onRead),
+        onClick = onRead,
+        modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
         color = if (notification.isRead) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.primaryContainer,
         tonalElevation = if (notification.isRead) 1.dp else 0.dp

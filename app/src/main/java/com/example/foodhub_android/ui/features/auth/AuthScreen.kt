@@ -34,20 +34,8 @@ fun AuthScreen(navController: NavController, isCustomer: Boolean = true, viewMod
         }
     }
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        Image(
-            painterResource(R.drawable.background),
-            contentDescription = null,
-            modifier = Modifier.fillMaxWidth().fillMaxHeight(.58f),
-            contentScale = ContentScale.Crop
-        )
-        Box(
-            Modifier.fillMaxWidth().fillMaxHeight(.62f).background(
-                Brush.verticalGradient(listOf(Color.Transparent, MaterialTheme.colorScheme.background), startY = 320f)
-            )
-        )
         Column(
-            Modifier.align(Alignment.BottomCenter).fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.extraLarge)
+            Modifier.align(Alignment.Center).fillMaxWidth()
                 .navigationBarsPadding().padding(horizontal = 24.dp, vertical = 26.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {

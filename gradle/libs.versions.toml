@@ -32,6 +32,7 @@ playServicesMaps = "20.0.0"
 navigationRuntimeKtx = "2.9.8"
 foundationVersion = "1.12.0"
 material3 = "1.4.0"
+room = "2.8.4"
 foundationLayout = "1.12.0"
 stripeAndroid = "23.14.0"
 firebaseBom = "34.17.0"
@@ -86,6 +87,9 @@ androidx-foundation-layout = { group = "androidx.compose.foundation", name = "fo
 stripe-android = { module = "com.stripe:stripe-android", version.ref = "stripeAndroid" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
+androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
+androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
+androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

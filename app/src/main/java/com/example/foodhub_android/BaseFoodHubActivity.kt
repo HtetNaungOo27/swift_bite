@@ -1,13 +1,11 @@
 package com.example.foodhub_android
 
 import android.content.Intent
-import android.Manifest
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.viewModels
-import androidx.core.app.ActivityCompat
 import com.example.foodhub_android.notification.FoodHubNotificationManager
+import com.example.foodhub_android.data.FoodHubSession
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -15,17 +13,11 @@ import javax.inject.Inject
 abstract class BaseFoodHubActivity : ComponentActivity() {
     val viewModel by viewModels<HomeViewModel>()
     @Inject lateinit var foodHubNotificationManager: FoodHubNotificationManager
+    @Inject lateinit var foodHubSession: FoodHubSession
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         foodHubNotificationManager.initialize()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-                NOTIFICATION_PERMISSION_REQUEST
-            )
-        }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -35,13 +27,15 @@ abstract class BaseFoodHubActivity : ComponentActivity() {
 
     protected fun processIntent(intent: Intent, viewModel: HomeViewModel) {
         if (intent.hasExtra(ORDER_ID)) {
-            intent.getStringExtra(ORDER_ID)?.let(viewModel::navigateToOrderDetail)
+            intent.getStringExtra(ORDER_ID)?.let { orderId ->
+                if (foodHubSession.getToken() == null) foodHubSession.storePendingOrderId(orderId)
+                else viewModel.navigateToOrderDetail(orderId)
+            }
             intent.removeExtra(ORDER_ID)
         }
     }
 
     private companion object {
         const val ORDER_ID = "orderId"
-        const val NOTIFICATION_PERMISSION_REQUEST = 1001
     }
 }

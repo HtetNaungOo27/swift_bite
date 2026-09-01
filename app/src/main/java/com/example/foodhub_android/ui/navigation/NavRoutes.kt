@@ -20,6 +20,7 @@ data class RestaurantDetails(
     val restaurantId: String,
     val restaurantName : String,
     val restaurantImageUrl: String,
+    val isOpen: Boolean = true,
 ): NavRoute
 @Serializable
 data class FoodDetails(val foodItem: FoodItem): NavRoute
@@ -32,6 +33,13 @@ object Notification: NavRoute
 
 @Serializable
 object Profile: NavRoute
+
+@Serializable
+object AppSettings: NavRoute
+
+@Serializable
+object Account: NavRoute
+@Serializable object Payouts: NavRoute
 
 @Serializable
 object AddressList: NavRoute

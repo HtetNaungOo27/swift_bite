@@ -1,0 +1,16 @@
+appId: com.example.foodhub_android
+---
+- launchApp:
+    clearState: true
+- tapOn: "Sign in"
+- tapOn: "Email"
+- inputText: ${CUSTOMER_EMAIL}
+- tapOn: "Password"
+- inputText: ${CUSTOMER_PASSWORD}
+- tapOn: "Sign in"
+- assertVisible: "Search restaurants or dishes"
+- tapOn: "Search restaurants or dishes"
+- inputText: "Shwe"
+- tapOn:
+    text: ".*Shwe.*"
+- assertVisible: "All"

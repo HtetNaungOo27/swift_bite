@@ -35,6 +35,7 @@ import com.example.foodhub_android.ui.navigation.OrderDetails
 import com.example.foodhub_android.ui.components.FoodHubHeader
 import com.example.foodhub_android.ui.components.StatusPill
 import com.example.foodhub_android.ui.components.StatePane
+import com.example.foodhub_android.ui.components.ListSkeleton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ReceiptLong
 import kotlinx.coroutines.launch
@@ -70,13 +71,19 @@ fun OrderListScreen(
         }
         HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) {
             when (state) {
-                OrdersListViewModel.OrdersScreenState.Loading -> LoadingScreen()
+                OrdersListViewModel.OrdersScreenState.Loading -> ListSkeleton()
                 OrdersListViewModel.OrdersScreenState.Failed -> ErrorScreen("Failed to load orders") {
                     viewModel.getOrdersByType(statuses[pagerState.currentPage])
                 }
                 is OrdersListViewModel.OrdersScreenState.Success -> {
                     if (state.data.isEmpty()) {
-                        StatePane("The kitchen is quiet", "Take a breath before the next rush. ${statuses[pagerState.currentPage].readableStatus()} orders will appear here.", Icons.Rounded.ReceiptLong)
+                        StatePane(
+                            "The kitchen is quiet",
+                            "Take a breath before the next rush. ${statuses[pagerState.currentPage].readableStatus()} orders will appear here.",
+                            Icons.Rounded.ReceiptLong,
+                            actionLabel = "Refresh",
+                            onAction = { viewModel.getOrdersByType(statuses[pagerState.currentPage]) }
+                        )
                     } else {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
@@ -98,10 +105,10 @@ fun OrderListScreen(
 @Composable
 private fun OrderListItem(order: Order, onClick: () -> Unit) {
     Card(
+        onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp)
-            .clickable(onClick = onClick),
+            .padding(horizontal = 12.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(2.dp)
@@ -112,7 +119,7 @@ private fun OrderListItem(order: Order, onClick: () -> Unit) {
                 StatusPill(order.status)
             }
             Text(order.address.addressLine1, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("$${"%.2f".format(order.totalAmount)}", fontWeight = FontWeight.SemiBold)
+            Text(com.example.foodhub_android.utils.StringUtils.formatCurrency(order.totalAmount), fontWeight = FontWeight.SemiBold)
         }
     }
 }

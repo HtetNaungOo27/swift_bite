@@ -1,0 +1,15 @@
+appId: com.example.foodhub_android.restaurant
+---
+- launchApp:
+    clearState: true
+- tapOn: "Email"
+- inputText: ${OWNER_EMAIL}
+- tapOn: "Password"
+- inputText: ${OWNER_PASSWORD}
+- tapOn: "Sign in"
+- assertVisible: "Quick actions"
+- tapOn: "Edit menu"
+- assertVisible: "Menu"
+- tapOn:
+    id: "android:id/content"
+    optional: true

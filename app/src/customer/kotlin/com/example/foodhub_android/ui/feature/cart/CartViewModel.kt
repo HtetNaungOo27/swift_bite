@@ -20,6 +20,8 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import java.util.UUID
+import java.time.LocalDateTime
 
 @HiltViewModel
 class CartViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel() {
@@ -35,9 +37,30 @@ class CartViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel() {
     val cartItemCount = _cartItemCount.asStateFlow()
     private var paymentIntent: PaymentIntentResponse? = null
     private val address = MutableStateFlow<Address?>(null)
+    private var codCheckoutKey = UUID.randomUUID().toString()
+    private var cardCheckoutKey = UUID.randomUUID().toString()
     val selectedAddress = address.asStateFlow()
+    private val _specialInstructions = MutableStateFlow("")
+    val specialInstructions = _specialInstructions.asStateFlow()
+    private val _riderInstructions = MutableStateFlow("")
+    val riderInstructions = _riderInstructions.asStateFlow()
+    private val _fulfillmentType = MutableStateFlow("DELIVERY")
+    val fulfillmentType = _fulfillmentType.asStateFlow()
+    private val _scheduledFor = MutableStateFlow<String?>(null)
+    val scheduledFor = _scheduledFor.asStateFlow()
     init {
         getCart()
+        loadDefaultAddress()
+    }
+
+    private fun loadDefaultAddress() {
+        viewModelScope.launch {
+            if (address.value != null) return@launch
+            when (val result = safeApiCall { foodApi.getUserAddress() }) {
+                is ApiResponse.Success -> address.value = result.data.addresses.firstOrNull()
+                else -> Unit
+            }
+        }
     }
     fun getCart() {
         viewModelScope.launch {
@@ -53,7 +76,7 @@ class CartViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel() {
                     _uiState.value = CartUiState.Error(res.message.orEmpty())
                 }
                 else -> {
-                    _uiState.value = CartUiState.Error("An error occoured")
+                    _uiState.value = CartUiState.Error("We couldn’t load your cart. Check your connection and try again.")
                 }
             }
         }
@@ -86,6 +109,8 @@ class CartViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel() {
                     getCart()
                 }
                 is ApiResponse.Error -> {
+                    errorTitle = "Couldn’t update quantity"
+                    errorMessage = res.message ?: "Your quantity wasn’t changed. Please try again."
                     cartResponse?.let {
                         _uiState.value = CartUiState.Success(it)
                     }
@@ -112,6 +137,8 @@ class CartViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel() {
                     getCart()
                 }
                 is ApiResponse.Error -> {
+                    errorTitle = "Couldn’t remove item"
+                    errorMessage = res.message ?: "The item is still in your cart. Please try again."
                     _event.emit(CartEvent.onItemRemoveError)
                     getCart()
                 }
@@ -131,7 +158,9 @@ class CartViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel() {
     fun checkout() {
         viewModelScope.launch {
             _uiState.value = CartUiState.Loading
-            val paymentDetails = safeApiCall { foodApi.getPaymentIntent(PaymentIntentRequest(address.value!!.id!!)) }
+            val paymentDetails = safeApiCall {
+                foodApi.getPaymentIntent(PaymentIntentRequest(address.value!!.id!!, cardCheckoutKey, _fulfillmentType.value, _scheduledFor.value))
+            }
 
             when (paymentDetails) {
                 is ApiResponse.Success -> {
@@ -155,8 +184,16 @@ class CartViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel() {
         val selected = address.value ?: return
         viewModelScope.launch {
             _uiState.value = CartUiState.Loading
-            when (val response = safeApiCall { foodApi.placeOrder(PlaceOrderRequest(selected.id!!, "COD")) }) {
+            when (val response = safeApiCall {
+                foodApi.placeOrder(
+                    PlaceOrderRequest(
+                        selected.id!!, "COD", codCheckoutKey, _specialInstructions.value, _riderInstructions.value,
+                        _fulfillmentType.value, _scheduledFor.value
+                    )
+                )
+            }) {
                 is ApiResponse.Success -> {
+                    codCheckoutKey = UUID.randomUUID().toString()
                     _event.emit(CartEvent.OrderSuccess(response.data.id))
                     getCart()
                 }
@@ -181,6 +218,22 @@ class CartViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel() {
 
     }
 
+    fun onSpecialInstructionsChanged(value: String) {
+        _specialInstructions.value = value.take(500)
+    }
+
+    fun onRiderInstructionsChanged(value: String) {
+        _riderInstructions.value = value.take(500)
+    }
+
+    fun setFulfillmentType(value: String) {
+        _fulfillmentType.value = value
+        if (value == "PICKUP") loadDefaultAddress()
+    }
+    fun scheduleNow() { _scheduledFor.value = null }
+    fun scheduleInOneHour() { _scheduledFor.value = LocalDateTime.now().plusHours(1).withSecond(0).withNano(0).toString() }
+    fun scheduleTomorrowLunch() { _scheduledFor.value = LocalDateTime.now().plusDays(1).withHour(12).withMinute(0).withSecond(0).withNano(0).toString() }
+
 
 
     fun onPaymentFailed() {
@@ -198,12 +251,17 @@ class CartViewModel @Inject constructor(val foodApi: FoodApi) : ViewModel() {
                 safeApiCall { foodApi.verifyPurchase(
                     ConfirmPaymentRequest(
                         paymentIntent!!.paymentIntentId,
-                        address.value!!.id!!
+                        address.value!!.id!!,
+                        _specialInstructions.value,
+                        _riderInstructions.value,
+                        _fulfillmentType.value,
+                        _scheduledFor.value
                     ), paymentIntent!!.paymentIntentId
                     )
                 }
             when(response){
                 is ApiResponse.Success -> {
+                    cardCheckoutKey = UUID.randomUUID().toString()
                     _event.emit(CartEvent.OrderSuccess(response.data.orderId))
                     _uiState.value = CartUiState.Success(cartResponse!!)
                     getCart()

@@ -42,16 +42,66 @@ class SignInViewModel @Inject constructor(
 
     private val _password = MutableStateFlow("")
     val password = _password.asStateFlow()
+    private val _validation = MutableStateFlow(SignInValidation())
+    val validation = _validation.asStateFlow()
+    private val _resetState = MutableStateFlow<PasswordResetState>(PasswordResetState.Idle)
+    val resetState = _resetState.asStateFlow()
 
     fun onEmailChange(email: String){
         _email.value = email
+        _validation.value = _validation.value.copy(email = null)
     }
 
     fun onPasswordChange(password: String) {
         _password.value = password
+        _validation.value = _validation.value.copy(password = null)
     }
 
+    fun requestPasswordReset(email: String) {
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email.trim()).matches()) {
+            _resetState.value = PasswordResetState.Error("Enter a valid email address")
+            return
+        }
+        viewModelScope.launch {
+            _resetState.value = PasswordResetState.Loading
+            when (val response = safeApiCall { foodApi.requestPasswordReset(mapOf("email" to email.trim())) }) {
+                is ApiResponse.Success -> _resetState.value = PasswordResetState.CodeSent(response.data["debugCode"])
+                is ApiResponse.Error -> _resetState.value = PasswordResetState.Error(response.message ?: "Unable to request a reset code")
+                is ApiResponse.Exception -> _resetState.value = PasswordResetState.Error("Couldn’t connect to the server")
+            }
+        }
+    }
+
+    fun confirmPasswordReset(email: String, code: String, newPassword: String) {
+        if (code.length != 6 || newPassword.length < 8) {
+            _resetState.value = PasswordResetState.Error("Enter the 6-digit code and a password of at least 8 characters")
+            return
+        }
+        viewModelScope.launch {
+            _resetState.value = PasswordResetState.Loading
+            when (val response = safeApiCall {
+                foodApi.resetPassword(mapOf("email" to email.trim(), "code" to code, "newPassword" to newPassword))
+            }) {
+                is ApiResponse.Success -> _resetState.value = PasswordResetState.Success
+                is ApiResponse.Error -> _resetState.value = PasswordResetState.Error(response.message ?: "The code is invalid or expired")
+                is ApiResponse.Exception -> _resetState.value = PasswordResetState.Error("Couldn’t connect to the server")
+            }
+        }
+    }
+
+    fun clearPasswordReset() { _resetState.value = PasswordResetState.Idle }
+
     fun onSignInClick() {
+        val errors = SignInValidation(
+            email = when {
+                email.value.isBlank() -> "Email is required"
+                !android.util.Patterns.EMAIL_ADDRESS.matcher(email.value.trim()).matches() -> "Enter a valid email address"
+                else -> null
+            },
+            password = if (password.value.isBlank()) "Password is required" else null
+        )
+        _validation.value = errors
+        if (errors.email != null || errors.password != null) return
         viewModelScope.launch {
             _uiState.value = SignInEvent.Loading
             try {
@@ -65,7 +115,7 @@ class SignInViewModel @Inject constructor(
                         session.storeToken(response.data.token)
                         notificationManager.initialize()
                         _uiState.value = SignInEvent.Success
-                        _navigationEvent.emit(SignInNavigationEvent.NavigateToHome)
+                        _navigationEvent.emit(SignInNavigationEvent.NavigateToHome(session.consumePendingOrderId()))
                     }
                     else -> _uiState.value = SignInEvent.Error
                 }
@@ -112,18 +162,26 @@ class SignInViewModel @Inject constructor(
         session.storeToken(token)
         notificationManager.initialize()
         _uiState.value = SignInEvent.Success
-        _navigationEvent.emit(SignInNavigationEvent.NavigateToHome)
+        _navigationEvent.emit(SignInNavigationEvent.NavigateToHome(session.consumePendingOrderId()))
     }
 
 
     sealed class SignInNavigationEvent{
         object NavigateToSignUp : SignInNavigationEvent()
-        object NavigateToHome : SignInNavigationEvent()
+        data class NavigateToHome(val pendingOrderId: String? = null) : SignInNavigationEvent()
     }
     sealed class SignInEvent{
         object Nothing: SignInEvent()
         object Success: SignInEvent()
         object Error: SignInEvent()
         object Loading: SignInEvent()
+    }
+    data class SignInValidation(val email: String? = null, val password: String? = null)
+    sealed interface PasswordResetState {
+        data object Idle : PasswordResetState
+        data object Loading : PasswordResetState
+        data class CodeSent(val debugCode: String?) : PasswordResetState
+        data object Success : PasswordResetState
+        data class Error(val message: String) : PasswordResetState
     }
 }

@@ -2,20 +2,21 @@ package com.example.foodhub_android.ui.features.orders
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.foodhub_android.data.FoodApi
+import com.example.foodhub_android.data.CachedResourceRepository
 import com.example.foodhub_android.data.models.Order
-import com.example.foodhub_android.data.remote.ApiResponse
-import com.example.foodhub_android.data.remote.safeApiCall
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class OrderListViewModel @Inject constructor(private val foodApi: FoodApi) : ViewModel(){
+class OrderListViewModel @Inject constructor(
+    private val repository: CachedResourceRepository
+) : ViewModel(){
 
     private val _state = MutableStateFlow<OrderListState>(OrderListState.Loading)
     val state get() = _state.asStateFlow()
@@ -24,6 +25,20 @@ class OrderListViewModel @Inject constructor(private val foodApi: FoodApi) : Vie
     val event get() = _event.asSharedFlow()
 
     init {
+        viewModelScope.launch {
+            repository.orders().collectLatest { cached ->
+                if (cached == null) {
+                    _state.value = OrderListState.Loading
+                    return@collectLatest
+                }
+                val previous = _state.value as? OrderListState.OrderList
+                _state.value = OrderListState.OrderList(
+                    orderList = cached.items,
+                    refreshError = previous?.refreshError,
+                    isRefreshing = previous?.isRefreshing == true
+                )
+            }
+        }
         getOrders()
     }
 
@@ -41,19 +56,18 @@ class OrderListViewModel @Inject constructor(private val foodApi: FoodApi) : Vie
 
     fun getOrders() {
         viewModelScope.launch {
-            _state.value = OrderListState.Loading
-            val result = safeApiCall { foodApi.getOrders() }
-            when (result) {
-                is ApiResponse.Success -> {
-                    _state.value = OrderListState.OrderList(result.data.orders)
-                }
-
-                is ApiResponse.Error -> {
-                    _state.value = OrderListState.Error(result.message ?: "Failed to get orders")
-                }
-
-                is ApiResponse.Exception -> {
-                    _state.value = OrderListState.Error(result.exception.message ?: "An error occurred")
+            val current = _state.value as? OrderListState.OrderList
+            _state.value = current?.copy(isRefreshing = true, refreshError = null)
+                ?: OrderListState.Loading
+            when (val result = repository.refreshOrders()) {
+                CachedResourceRepository.RefreshResult.Success ->
+                    (_state.value as? OrderListState.OrderList)?.let {
+                        _state.value = it.copy(isRefreshing = false, refreshError = null)
+                    }
+                is CachedResourceRepository.RefreshResult.Failure -> {
+                    val cached = _state.value as? OrderListState.OrderList
+                    _state.value = cached?.copy(isRefreshing = false, refreshError = result.message)
+                        ?: OrderListState.Error(result.message)
                 }
             }
         }
@@ -66,7 +80,11 @@ class OrderListViewModel @Inject constructor(private val foodApi: FoodApi) : Vie
 
     sealed class OrderListState {
         object Loading : OrderListState()
-        data class OrderList(val orderList: List<Order>) : OrderListState()
+        data class OrderList(
+            val orderList: List<Order>,
+            val refreshError: String? = null,
+            val isRefreshing: Boolean = false
+        ) : OrderListState()
         data class Error(val message: String) : OrderListState()
     }
 

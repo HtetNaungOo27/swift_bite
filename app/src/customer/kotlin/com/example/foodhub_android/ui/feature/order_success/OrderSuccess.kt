@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.foodhub_android.ui.navigation.Home
 import com.example.foodhub_android.ui.navigation.OrderDetails
+import com.example.foodhub_android.ui.navigation.OrderSuccess as OrderSuccessRoute
 
 @Composable
 fun OrderSuccess(orderID: String, navController: NavController) {
@@ -72,7 +73,12 @@ fun OrderSuccess(orderID: String, navController: NavController) {
                 }
             }
             Spacer(Modifier.weight(1f))
-            Button(onClick = { navController.navigate(OrderDetails(orderID)) }, modifier = Modifier.fillMaxWidth().height(56.dp)) {
+            Button(onClick = {
+                navController.navigate(OrderDetails(orderID)) {
+                    popUpTo<OrderSuccessRoute> { inclusive = true }
+                    launchSingleTop = true
+                }
+            }, modifier = Modifier.fillMaxWidth().height(56.dp)) {
                 Text("Track order status")
             }
             Spacer(Modifier.height(10.dp))

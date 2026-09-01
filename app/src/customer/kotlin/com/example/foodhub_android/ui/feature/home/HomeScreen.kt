@@ -1,5 +1,7 @@
 package com.example.foodhub_android.ui.feature.home
 
+import android.Manifest
+import android.content.pm.PackageManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -12,6 +14,7 @@ import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.Restaurant
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Payments
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,6 +24,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
@@ -29,16 +34,36 @@ import com.example.foodhub_android.data.models.Restaurant
 import com.example.foodhub_android.ui.components.StatePane
 import com.example.foodhub_android.ui.components.ShimmerBlock
 import com.example.foodhub_android.ui.navigation.RestaurantDetails
+import com.example.foodhub_android.utils.StringUtils
 import kotlinx.coroutines.flow.collectLatest
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 
 @Composable
 fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltViewModel()) {
+    val context = LocalContext.current
     var query by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf<String?>(null) }
+    val locationLabel by viewModel.locationLabel.collectAsState()
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { result ->
+        if (result.values.any { it }) loadDeviceLocation(context, viewModel)
+        else viewModel.useYangonFallback("Yangon · using saved service area")
+    }
     LaunchedEffect(Unit) {
+        val hasLocationPermission =
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        if (hasLocationPermission) {
+            loadDeviceLocation(context, viewModel)
+        }
         viewModel.navigationEvent.collectLatest {
             if (it is HomeViewModel.HomeScreenNavigationEvent.NavigateToDetail) {
-                navController.navigate(RestaurantDetails(it.id, it.name, it.imageUrl))
+                navController.navigate(RestaurantDetails(it.id, it.name, it.imageUrl, it.isOpen))
             }
         }
     }
@@ -46,7 +71,13 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         when (state) {
             HomeViewModel.HomeScreenState.Loading -> RestaurantFeedShimmer()
-            HomeViewModel.HomeScreenState.Empty -> StatePane("Nothing nearby yet", "Try changing your location", Icons.Rounded.Restaurant)
+            HomeViewModel.HomeScreenState.Empty -> StatePane(
+                "Restaurants are temporarily unavailable",
+                "Your service area is set to Yangon. Retry after confirming the backend is running.",
+                Icons.Rounded.Restaurant,
+                actionLabel = "Reload Yangon restaurants",
+                onAction = viewModel::useYangonFallback
+            )
             HomeViewModel.HomeScreenState.Success -> {
                 val filtered = viewModel.restaurants.filter {
                     (query.isBlank() || it.name.contains(query, ignoreCase = true)) &&
@@ -61,16 +92,35 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Column(Modifier.weight(1f)) {
                                     Text("Good food, delivered", style = MaterialTheme.typography.headlineMedium)
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Rounded.LocationOn, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-                                        Text(" Near your saved address", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
+                                    Text("Discover Yangon favourites", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surface) {
                                     Text("SB", Modifier.padding(13.dp), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                                 }
                             }
                             Spacer(Modifier.height(18.dp))
+                            Surface(
+                                onClick = {
+                                    val permitted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                                        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                                    if (permitted) loadDeviceLocation(context, viewModel)
+                                    else permissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+                                },
+                                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                                shape = MaterialTheme.shapes.medium,
+                                color = MaterialTheme.colorScheme.surface.copy(alpha = .78f)
+                            ) {
+                                Row(Modifier.padding(horizontal = 14.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Rounded.LocationOn, null, tint = MaterialTheme.colorScheme.primary)
+                                    Spacer(Modifier.width(9.dp))
+                                    Column(Modifier.weight(1f)) {
+                                        Text("Delivering to", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(locationLabel, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    }
+                                    Text("Change", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+                            Spacer(Modifier.height(12.dp))
                             OutlinedTextField(
                                 value = query,
                                 onValueChange = { query = it },
@@ -108,6 +158,24 @@ fun HomeScreen(navController: NavController, viewModel: HomeViewModel = hiltView
                 }
             }
         }
+    }
+}
+
+private fun loadDeviceLocation(context: android.content.Context, viewModel: HomeViewModel) {
+    val permitted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+    if (!permitted) return
+    try {
+        val cancellation = CancellationTokenSource()
+        LocationServices.getFusedLocationProviderClient(context)
+            .getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, cancellation.token)
+            .addOnSuccessListener { location ->
+                if (location != null) viewModel.updateLocation(location.latitude, location.longitude)
+                else viewModel.useYangonFallback("Yangon · current location unavailable")
+            }
+            .addOnFailureListener { viewModel.useYangonFallback("Yangon · current location unavailable") }
+    } catch (_: SecurityException) {
+        viewModel.useYangonFallback("Yangon · location permission unavailable")
     }
 }
 
@@ -162,16 +230,24 @@ private fun CategoryList(categories: List<Category>, selected: String?, onSelect
 @Composable
 private fun RestaurantCard(restaurant: Restaurant, onClick: (Restaurant) -> Unit) {
     ElevatedCard(
-        Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 7.dp).clickable { onClick(restaurant) },
+        Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 7.dp).clickable(enabled = restaurant.isOpen) { onClick(restaurant) },
         shape = MaterialTheme.shapes.large
     ) {
         Column {
             Box {
-                AsyncImage(restaurant.imageUrl, restaurant.name, Modifier.fillMaxWidth().height(190.dp), contentScale = ContentScale.Crop)
+                AsyncImage(restaurant.imageUrl, restaurant.name, Modifier.fillMaxWidth().height(172.dp), contentScale = ContentScale.Crop)
+                if (!restaurant.isOpen) {
+                    Box(Modifier.matchParentSize().background(androidx.compose.ui.graphics.Color.Black.copy(.55f)), contentAlignment = Alignment.Center) {
+                        Text("Currently closed", color = androidx.compose.ui.graphics.Color.White, style = MaterialTheme.typography.titleMedium)
+                    }
+                }
             }
             Column(Modifier.padding(17.dp)) {
                 Text(restaurant.name, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Spacer(Modifier.height(6.dp))
+                restaurant.cuisine?.takeIf { it.isNotBlank() }?.let {
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                }
+                Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Rounded.Schedule, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
                     Text(" 20–30 min", style = MaterialTheme.typography.bodySmall)
@@ -180,6 +256,20 @@ private fun RestaurantCard(restaurant: Restaurant, onClick: (Restaurant) -> Unit
                         Icon(Icons.Rounded.LocationOn, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(" ${"%.1f".format(restaurant.distance)} km", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
+                }
+                Spacer(Modifier.height(7.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Rounded.Payments, null, Modifier.size(17.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        if (restaurant.deliveryFee <= 0.0) " Free delivery" else " ${StringUtils.formatCurrency(restaurant.deliveryFee)} delivery",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (restaurant.minimumOrderAmount > 0) Text(
+                        "  ·  Min ${StringUtils.formatCurrency(restaurant.minimumOrderAmount)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }

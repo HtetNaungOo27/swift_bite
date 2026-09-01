@@ -1,0 +1,15 @@
+appId: com.example.foodhub_android.rider
+---
+- launchApp:
+    clearState: true
+- tapOn: "Email"
+- inputText: ${RIDER_EMAIL}
+- tapOn: "Password"
+- inputText: ${RIDER_PASSWORD}
+- tapOn: "Sign in"
+- assertVisible: "Available jobs"
+- assertVisible: ".*online.*"
+- tapOn: "Orders"
+- assertVisible: "Active deliveries"
+- tapOn: "Wallet"
+- assertVisible: ".*wallet.*"

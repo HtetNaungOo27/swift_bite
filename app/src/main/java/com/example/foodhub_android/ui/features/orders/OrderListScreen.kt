@@ -55,7 +55,7 @@ fun OrderListScreen(navController: NavController, viewModel: OrderListViewModel 
         }
         when (val value = state) {
             OrderListViewModel.OrderListState.Loading ->
-                StatePane("Loading orders", "Getting the latest status", loading = true)
+                ListSkeleton(showTabs = false)
             is OrderListViewModel.OrderListState.Error ->
                 StatePane("Couldn’t load orders", value.message, Icons.Rounded.Refresh, actionLabel = "Try again", onAction = viewModel::getOrders)
             is OrderListViewModel.OrderListState.OrderList -> {
@@ -67,13 +67,19 @@ fun OrderListScreen(navController: NavController, viewModel: OrderListViewModel 
                     StatePane(
                         if (selectedTab == 0) "No active orders" else "No order history",
                         if (selectedTab == 0) "Your next order will appear here." else "Completed and cancelled orders will appear here.",
-                        Icons.Rounded.ReceiptLong
+                        Icons.Rounded.ReceiptLong,
+                        actionLabel = if (selectedTab == 0) "Browse restaurants" else "Refresh",
+                        onAction = {
+                            if (selectedTab == 0) navController.navigate(com.example.foodhub_android.ui.navigation.Home) { launchSingleTop = true }
+                            else viewModel.getOrders()
+                        }
                     )
                 } else {
                     LazyColumn(
                         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 14.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
+                        value.refreshError?.let { message -> item { NetworkNotice(message, viewModel::getOrders) } }
                         items(orders, key = { it.id }) { order -> OrderListItem(order) { viewModel.navigateToDetails(order) } }
                         item { Spacer(Modifier.navigationBarsPadding().height(8.dp)) }
                     }
@@ -85,12 +91,12 @@ fun OrderListScreen(navController: NavController, viewModel: OrderListViewModel 
 
 @Composable
 fun OrderListItem(order: Order, onClick: () -> Unit) {
-    ElevatedCard(Modifier.fillMaxWidth().clickable(onClick = onClick), shape = MaterialTheme.shapes.large) {
+    ElevatedCard(onClick = onClick, modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 AsyncImage(
                     model = order.restaurant.imageUrl,
-                    contentDescription = null,
+                    contentDescription = "${order.restaurant.name} restaurant",
                     modifier = Modifier.size(58.dp),
                     contentScale = ContentScale.Crop
                 )
@@ -99,7 +105,7 @@ fun OrderListItem(order: Order, onClick: () -> Unit) {
                     Text(order.restaurant.name, style = MaterialTheme.typography.titleMedium)
                     Text("Order #${order.id.takeLast(8).uppercase()}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Icon(Icons.Rounded.ChevronRight, contentDescription = null)
+                Icon(Icons.Rounded.ChevronRight, contentDescription = "Open order details")
             }
             HorizontalDivider()
             Row(verticalAlignment = Alignment.CenterVertically) {

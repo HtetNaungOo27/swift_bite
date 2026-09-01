@@ -92,7 +92,6 @@ class AddMenuItemViewModel @Inject constructor(
             }
             val response = safeApiCall {
                 foodApi.addRestaurantMenu(
-                    restaurantId,
                     FoodItem(
                         name = name.trim(),
                         description = description.trim(),
